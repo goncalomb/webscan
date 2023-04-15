@@ -15,9 +15,9 @@ function SWVersion() {
     if (m && m.index !== undefined && commit.startsWith(m[1])) {
       const before = version.substring(0, m.index + 2);
       const after = version.substring(m.index + m[0].length);
-      elVersion = <>{before}<a href={urlCommit} title={commit}>{m[1]}</a>{after}</>
+      elVersion = <>{before}<a href={urlCommit} title={commit}>{m[1]}</a>{after}</>;
     } else {
-      elVersion = <>{version} (<a href={urlCommit} title={commit}>{commit.substring(0, 7)}</a>)</>
+      elVersion = <>{version} (<a href={urlCommit} title={commit}>{commit.substring(0, 7)}</a>)</>;
     }
   }
   return <span><a href={urlRepo}>sane-wasm</a> {elVersion}</span>;

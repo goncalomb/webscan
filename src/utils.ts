@@ -11,7 +11,7 @@ export function usbRequestDevices(filters = false) {
   return navigator.usb.requestDevice({
     filters: filters ? [
       { classCode: 0x07 }, // printer
-    ] : []
+    ] : [],
   });
 }
 

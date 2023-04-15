@@ -7,15 +7,17 @@
   justify-content: center;
 }
 
-.App > header, .App > footer {
+.App>header,
+.App>footer {
   color: white;
   text-align: center;
 }
 
-.App > header a, .App > footer a {
+.App>header a,
+.App>footer a {
   color: white;
 }
 
-.App > main {
+.App>main {
   flex: 1;
 }

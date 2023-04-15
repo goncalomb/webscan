@@ -6,18 +6,18 @@
   flex-wrap: wrap;
 }
 
-.Main > div {
+.Main>div {
   margin: 1em;
   background-color: white;
   border-radius: 5px;
 }
 
-.Main > div:nth-child(1) {
+.Main>div:nth-child(1) {
   flex: 0 1;
   padding: 1em;
 }
 
-.Main > div:nth-child(2) {
+.Main>div:nth-child(2) {
   flex: 1;
   padding: .2em 1em;
   min-width: 350px;

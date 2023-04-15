@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { useSANEContext } from './SANEContext';
 import Main from './components/Main';
+import CanvasContextProvider from './components/CanvasContext';
 
 function SWVersion() {
   const { lib } = useSANEContext();
@@ -30,7 +31,9 @@ export default function App() {
         <h1>WebScan</h1>
         <p>An experimental project to bring document/image scanning to the web (USB scanners). </p>
       </header>
-      <Main />
+      <CanvasContextProvider>
+        <Main />
+      </CanvasContextProvider>
       <footer>
         <p>built using <SWVersion /> | <a href="https://goncalomb.com/">goncalomb.com</a></p>
       </footer>

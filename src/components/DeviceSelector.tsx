@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useSANEContext } from '../SANEContext';
 
 export default function DeviceSelector() {
-  const { state, devices, getDevices, openDevice, closeDevice } = useSANEContext();
+  const { state, devices, scanning, getDevices, openDevice, closeDevice } = useSANEContext();
   const refSelect = useRef<HTMLSelectElement>(null);
   return state?.initialized ? (
     <>
@@ -19,7 +19,7 @@ export default function DeviceSelector() {
           {state.open ? (
             <>
               <p>
-                <button onClick={e => closeDevice()}>Close Device</button> <small><strong>Close the device before unplugging or leaving.</strong></small>
+                <button onClick={e => closeDevice()} disabled={scanning}>Close Device</button> <small><strong>Close the device before unplugging or leaving.</strong></small>
               </p>
               <p>
                 <small>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>

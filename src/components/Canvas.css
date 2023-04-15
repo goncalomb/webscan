@@ -1,5 +1,6 @@
 .Canvas {
-  min-width: 500px;
-  min-height: calc(500px * 1.414);
+  width: 500px;
+  height: calc(500px * 1.414);
   border: 2px solid #aaa;
+  overflow: auto;
 }

@@ -3,19 +3,16 @@ import './Main.css';
 import Canvas from './Canvas';
 import DeviceSelector from './DeviceSelector';
 import { isNavigatorSupported } from '../utils';
-import { useSANEContext } from '../SANEContext';
+import ScanController from './ScanController';
 
 function Side() {
-  const { parameters } = useSANEContext();
   return (
     <>
       <h3>1. Select Device</h3>
       <DeviceSelector />
       <h3>2. Change Options (TODO)</h3>
-      <h3>3. Scan (TODO)</h3>
-      <pre>
-        {JSON.stringify(parameters, null, 2)}
-      </pre>
+      <h3>3. Scan</h3>
+      <ScanController />
     </>
   );
 }

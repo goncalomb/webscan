@@ -11,3 +11,14 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+body {
+  overflow-y: scroll;
+}
+
+input,
+select,
+button {
+  box-sizing: border-box;
+  padding: .2em .5em;
+}

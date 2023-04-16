@@ -1,0 +1,21 @@
+.OptionsSelector>h3 {
+  margin: .7em 0;
+}
+
+.OptionsSelector>p {
+  margin: .5em 0;
+}
+
+.OptionsSelector label>* {
+  vertical-align: middle;
+}
+
+.OptionsSelector label input[type="text"],
+.OptionsSelector label select,
+.OptionsSelector label button {
+  min-width: 70%;
+}
+
+.OptionsSelector label input[type="checkbox"] {
+  margin-left: 0;
+}

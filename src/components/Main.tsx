@@ -4,18 +4,7 @@ import Canvas from './Canvas';
 import DeviceSelector from './DeviceSelector';
 import { isNavigatorSupported } from '../utils';
 import ScanController from './ScanController';
-
-function Side() {
-  return (
-    <>
-      <h3>1. Select Device</h3>
-      <DeviceSelector />
-      <h3>2. Change Options (TODO)</h3>
-      <h3>3. Scan</h3>
-      <ScanController />
-    </>
-  );
-}
+import OptionsSelector from './OptionsSelector';
 
 export default function Main() {
   return (
@@ -25,7 +14,14 @@ export default function Main() {
       </div>
       <div>
         {isNavigatorSupported() ? (
-          <Side />
+          <>
+            <h2>1. Select Device</h2>
+            <DeviceSelector />
+            <h2>2. Change Options</h2>
+            <OptionsSelector />
+            <h2>3. Scan</h2>
+            <ScanController />
+          </>
         ) : (
           <p>
             <strong>Browser not supported!</strong><br />A modern browser that <a href="https://caniuse.com/webusb">supports WebUSB</a> is required.

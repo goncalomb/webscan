@@ -1,81 +1,12 @@
 import React, { useCallback, useContext, useState } from "react";
 import { useEffect } from "react";
 import { isNavigatorSupported, usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
+import { LibSANE, SANEDevice, SANEOptionDescriptor, SANEParameters, SANEState, SANEType } from "./libsane";
 
-// XXX: these type definitions should eventually be completed
-//      and moved to the sane-wasm project
-
-interface SANEState {
-  initialized: boolean;
-  version_code: number;
-  version: {
-    major: number;
-    minor: number;
-    build: number;
-  },
-  open: boolean;
-}
-
-interface SANEDevice {
-  name: string;
-  vendor: string;
-  model: string;
-  type: string;
-}
-
-interface SANEParameters {
-  format: number;
-  last_frame: boolean;
-  bytes_per_line: number;
-  pixels_per_line: number;
-  lines: number;
-  depth: number;
-}
-
-type SANEEnum = {
-  [key: string]: number; // TODO: proper enum type
-} & {
-  asString: (n: number) => string | null;
-}
-
-interface LibSANE {
-  SANE_WASM_COMMIT: string;
-  SANE_WASM_VERSION: string;
-  SANE_CURRENT_MAJOR: number;
-  SANE_CURRENT_MINOR: number;
-
-  SANE_STATUS: SANEEnum;
-  SANE_TYPE: SANEEnum;
-  SANE_UNIT: SANEEnum;
-  SANE_CONSTRAINT: SANEEnum;
-  SANE_FRAME: SANEEnum;
-
-  sane_get_state: () => SANEState;
-  sane_init: () => number; // sync?
-  sane_exit: () => Promise<void>;
-  sane_get_devices: () => Promise<{ status: number; devices: SANEDevice[] }>;
-  sane_open: (devicename: string) => Promise<{ status: number; }>;
-  sane_close: () => Promise<void>;
-  sane_get_option_descriptor: (option: number) => { status: number; option_descriptor: any };
-  sane_control_option_get_value: (option: number) => { status: number; value: any }; // sync?
-  sane_control_option_set_value: (option: number, value: any) => { status: number; info: any }; // sync?
-  sane_control_option_set_auto: (option: number) => { status: number; info: any }; // sync?
-  sane_get_parameters: () => { status: number; parameters: SANEParameters };
-  sane_start: () => { status: number; };
-  sane_read: () => { status: number; data: Uint8Array };
-  sane_cancel: () => { status: number; };
-  sane_strstatus: (status: number) => string;
-}
-
-declare global {
-  interface Window {
-    LibSANE?: (options?: any) => Promise<LibSANE>;
-  }
-}
-
-// utilities
-
-async function getLibSANE() {
+/**
+ * SANE utility function to initialize library (window.LibSANE).
+ */
+async function saneGetLibSANE() {
   if (!window.LibSANE) {
     throw new Error('LibSANE not found');
   }
@@ -84,7 +15,38 @@ async function getLibSANE() {
   return l();
 }
 
-function doScan(lib: LibSANE, callback: (parameters: SANEParameters, data: Uint8Array) => void) {
+/**
+ * SANE utility function to fetch all options.
+ */
+async function saneGetOptions(lib: LibSANE) {
+  const options: { descriptor: SANEOptionDescriptor, value: any }[] = [];
+  let desc: SANEOptionDescriptor | null = null;
+  for (let i = 0, n = -1; i === 0 || desc; i++) {
+    ({ option_descriptor: desc } = lib.sane_get_option_descriptor(i));
+    if (desc) {
+      if (!desc.cap.INACTIVE && desc.cap.SOFT_DETECT && desc.type !== SANEType.BUTTON) {
+        const { status, value } = await lib.sane_control_option_get_value(i); // TODO: handle status
+        if (status !== lib.SANE_STATUS.GOOD) {
+          throw new Error('Unexpected status while getting option value');
+        }
+        options.push({ descriptor: desc, value });
+        if (i === 0) {
+          n = value; // option 0 contains total number of options
+        }
+      } else {
+        options.push({ descriptor: desc, value: null });
+      }
+    } else if (!desc && i !== n) {
+      throw new Error('Unexpected number of options');
+    }
+  }
+  return options;
+}
+
+/**
+ * SANE utility function that implements core scanning code flow.
+ */
+function saneDoScan(lib: LibSANE, callback: (parameters: SANEParameters, data: Uint8Array) => void) {
   let status = lib.SANE_STATUS.GOOD;
   let parameters: SANEParameters | null = null;
   let promise: Promise<void> | null = null;
@@ -121,17 +83,17 @@ function doScan(lib: LibSANE, callback: (parameters: SANEParameters, data: Uint8
   return { status, parameters, promise };
 }
 
-// context
-
 interface ISANEContext {
   lib: LibSANE | null;
   state: SANEState | null;
   devices: SANEDevice[];
+  options: { descriptor: SANEOptionDescriptor, value: any }[];
   parameters: SANEParameters | null;
   scanning: boolean;
   getDevices: () => void;
   openDevice: (name: string) => void;
   closeDevice: () => void;
+  setOptionValue: (option: number, value?: any) => void;
   startScan: (callback: (parameters: SANEParameters, data: Uint8Array) => void) => SANEParameters | null;
 }
 
@@ -149,6 +111,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const [lib, setLib] = useState<ISANEContext['lib']>(null);
   const [state, setState] = useState<ISANEContext['state']>(null);
   const [devices, setDevices] = useState<ISANEContext['devices']>([]);
+  const [options, setOptions] = useState<ISANEContext['options']>([]);
   const [parameters, setParameters] = useState<ISANEContext['parameters']>(null);
   const [scanning, setScanning] = useState<ISANEContext['scanning']>(false);
 
@@ -175,10 +138,9 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     if (lib && state?.initialized) {
       const { status } = await lib.sane_open(name);
       setState(lib.sane_get_state());
+      setOptions(await saneGetOptions(lib));
       setParameters(lib.sane_get_parameters().parameters);
-      if (status === lib.SANE_STATUS.GOOD) {
-
-      } else {
+      if (status !== lib.SANE_STATUS.GOOD) {
         alert('Failed to open device.'); // TODO: proper error dialog
       }
     }
@@ -188,13 +150,41 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     if (lib && state?.initialized) {
       await lib.sane_close();
       setState(lib.sane_get_state());
+      setOptions([]);
       setParameters(null);
+    }
+  }, [lib, state?.initialized]);
+
+  const setOptionValue = useCallback(async (option: number, value?: any) => {
+    if (lib && state?.initialized) {
+      // XXX: value == undefined means set auto, this function should be split in two or use symbol to mean auto, add type to value first
+      const { status, info } = value === undefined ? await lib.sane_control_option_set_auto(option) : await lib.sane_control_option_set_value(option, value);
+      if (status === lib.SANE_STATUS.GOOD) {
+        if (info.RELOAD_PARAMS) {
+          setParameters(lib.sane_get_parameters().parameters);
+        }
+        if (info.RELOAD_OPTIONS) {
+          setOptions(await saneGetOptions(lib));
+          return; // skip get/update option, we fetch them all
+        }
+        if (info.INEXACT || value === undefined) { // auto triggers get value
+          ({ value } = await lib.sane_control_option_get_value(option));
+        }
+        // update value
+        setOptions(options => {
+          const ret = [...options];
+          ret[option] = { ...options[option], value };
+          return ret;
+        });
+      } else {
+        alert('Failed to set option.'); // TODO: proper error dialog
+      }
     }
   }, [lib, state?.initialized]);
 
   const startScan = useCallback((callback: (parameters: SANEParameters, data: Uint8Array) => void) => {
     if (lib && state?.initialized) {
-      const { status, parameters, promise } = doScan(lib, callback);
+      const { status, parameters, promise } = saneDoScan(lib, callback);
       if (status === lib.SANE_STATUS.GOOD) {
         // scan started
         setParameters(parameters);
@@ -214,7 +204,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   // initialize library
   useEffect(() => {
-    getLibSANE().then(lib => {
+    saneGetLibSANE().then(lib => {
       setLib(lib);
       if (isNavigatorSupported()) {
         lib.sane_init();
@@ -255,8 +245,8 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   return (
     <SANEContext.Provider value={{
-      lib, state, devices, parameters, scanning,
-      getDevices, openDevice, closeDevice, startScan,
+      lib, state, devices, options, parameters, scanning,
+      getDevices, openDevice, closeDevice, setOptionValue, startScan,
     }}>
       {children}
     </SANEContext.Provider>

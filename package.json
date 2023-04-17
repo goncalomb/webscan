@@ -10,6 +10,7 @@
     "@types/node": "^16.18.23",
     "@types/react": "^18.0.35",
     "@types/react-dom": "^18.0.11",
+    "bytes": "^3.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
@@ -28,12 +29,21 @@
       "react-app/jest"
     ],
     "rules": {
-      "indent": ["warn", 2],
-      "semi": ["warn", "always"],
-      "comma-dangle": ["warn", {
-        "arrays": "always-multiline",
-        "objects": "always-multiline"
-      }]
+      "indent": [
+        "warn",
+        2
+      ],
+      "semi": [
+        "warn",
+        "always"
+      ],
+      "comma-dangle": [
+        "warn",
+        {
+          "arrays": "always-multiline",
+          "objects": "always-multiline"
+        }
+      ]
     }
   },
   "browserslist": {
@@ -49,6 +59,7 @@
     ]
   },
   "devDependencies": {
+    "@types/bytes": "^3.1.1",
     "@types/w3c-web-usb": "^1.0.6"
   }
 }

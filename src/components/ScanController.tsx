@@ -1,48 +1,78 @@
 import React, { useCallback } from 'react';
+import bytes from 'bytes';
 import { useSANEContext } from '../SANEContext';
 import { useCanvasContext } from './CanvasContext';
+import { SANEFrame, SANEImageScanner, SANEParameters } from '../libsane';
+
+function constructErrorList(parameters: SANEParameters) {
+  const arr = [];
+  if (parameters.format !== SANEFrame.GRAY && parameters.format !== SANEFrame.RGB) {
+    arr.push(<li key="0">only RGB and GRAY formats are supported</li>);
+  }
+  if (parameters.depth !== 1 && parameters.depth !== 8) {
+    arr.push(<li key="1">only 1/8-bit images are supported</li>);
+  }
+  if (!parameters.last_frame) {
+    arr.push(<li key="2">3-pass scanners are not supported</li>);
+  }
+  if (parameters.lines < 0) {
+    arr.push(<li key="3">"hand scanners" (unknown height) are not supported</li>);
+  }
+  return arr.length ? (
+    <ul style={{ color: "firebrick" }}>
+      {arr}
+    </ul>
+  ) : null;
+}
 
 export default function ScanController() {
-  const { lib, state, parameters, scanning, startScan } = useSANEContext();
+  const { lib, state, parameters, scanning, startScan, stopScan } = useSANEContext();
   const { resetCanvas, putImageData } = useCanvasContext();
 
-  const doStartScan = useCallback(() => {
-    let line = 0;
-    let rem = new Uint8ClampedArray();
-    const parameters = startScan((parameters, data) => {
-      const lc = Math.floor((rem.length + data.length) / (3 * parameters.pixels_per_line));
-      const idata = new Uint8ClampedArray(rem.length + data.length);
-      idata.set(rem, 0);
-      idata.set(data, rem.length);
-      if (lc) {
-        const odata = new Uint8ClampedArray(lc * parameters.pixels_per_line * 4);
-        var i = 0;
-        for (var j = 0; j < odata.length; i += 3, j += 4) {
-          odata.set(idata.subarray(i, i + 3), j);
-          odata[j + 3] = 0xff;
-        }
-        rem = idata.subarray(i);
-        putImageData(new ImageData(odata, parameters.pixels_per_line), line);
-        line += lc;
-      } else {
-        rem = idata;
-      }
+  const startImageScan = useCallback(() => {
+    // its safe to keep a reference to resetCanvas and putImageData because
+    // they never change, see useCanvasContext
+    const scanner = new SANEImageScanner((data: ImageData, line: number) => {
+      putImageData(data, line);
     });
+    const parameters = startScan(scanner);
     if (parameters) {
       resetCanvas(parameters.pixels_per_line, parameters.lines);
     }
   }, [startScan, resetCanvas, putImageData]);
 
-  return state?.initialized ? (
+  const errorList = parameters ? constructErrorList(parameters) : null;
+  return state?.open && parameters ? (
     <>
       <p>
-        <button onClick={e => doStartScan()} disabled={!state.open || scanning || parameters?.format !== lib?.SANE_FRAME.RGB}>Start Scan</button>
-        {' '}
-        {state.open && parameters && parameters.format !== lib?.SANE_FRAME.RGB ? <small><strong>Unsupported format ({lib?.SANE_FRAME.asString(parameters.format)}), choose other options.</strong></small> : null}
+        {parameters.last_frame ? lib?.SANE_FRAME.asString(parameters.format) : '3-pass'}
+        {' / '}
+        {`${parameters.depth}-bit`}
+        {' / '}
+        {parameters.lines < 0 ? (
+          <>
+            {`${parameters.pixels_per_line} x ? pixels`}
+          </>
+        ) : (
+          <>
+            {`${parameters.pixels_per_line} x ${parameters.lines} pixels`}
+            {' / '}
+            {((b: number) => <><abbr title={`${b} bytes`}>{bytes(b, { unitSeparator: ' ' })}</abbr> (RGB 8-bit)</>)(parameters.pixels_per_line * parameters.lines * 3)}
+          </>
+        )}
       </p>
-      <pre>
-        {parameters && JSON.stringify(parameters, null, 2)}
-      </pre>
+      {errorList}
+      {scanning ? (
+        <p>
+          <button onClick={e => stopScan()}>Stop Scan</button> <small style={{ color: 'midnightblue' }}><strong>Scanning...</strong></small>
+        </p>
+      ) : (
+        <p>
+          <button onClick={e => startImageScan()} disabled={!!errorList}>Start Scan</button>
+          {' '}
+          {errorList ? <small style={{ color: 'firebrick' }}><strong>Unsupported format choose other options.</strong></small> : null}
+        </p>
+      )}
     </>
   ) : null;
 }

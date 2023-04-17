@@ -19,10 +19,10 @@ export default function DeviceSelector() {
           {state.open ? (
             <>
               <p>
-                <button onClick={e => closeDevice()} disabled={scanning}>Close Device</button> <small><strong>Close the device before unplugging or leaving.</strong></small>
+                <button onClick={e => closeDevice()} disabled={scanning}>Close Device</button> <small style={{ color: 'midnightblue' }}><strong>Close the device before unplugging or leaving.</strong></small>
               </p>
               <p>
-                <small>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
+                <small style={{ color: 'midnightblue' }}>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
               </p>
             </>
           ) : (

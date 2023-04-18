@@ -4,6 +4,7 @@ import { isNavigatorSupported, usbAddListener, usbRemoveListener, usbRequestDevi
 import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
+  busy: boolean;
   lib: LibSANE | null;
   state: SANEState | null;
   devices: SANEDevice[];
@@ -29,6 +30,7 @@ export const useSANEContext = () => {
 };
 
 export const SANEContextProvider = ({ children }: { children: any }) => {
+  const [busy, setBusy] = useState<ISANEContext['busy']>(false);
   const [lib, setLib] = useState<ISANEContext['lib']>(null);
   const [state, setState] = useState<ISANEContext['state']>(null);
   const [devices, setDevices] = useState<ISANEContext['devices']>([]);
@@ -36,7 +38,22 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const [parameters, setParameters] = useState<ISANEContext['parameters']>(null);
   const [scanning, setScanning] = useState<ISANEContext['scanning']>(false);
 
-  const getDevices = useCallback(async (usbRequest = true) => {
+  // wrapper to set busy state while performing calls to the library, this
+  // breaks hooks linting a bit, using eslint-disable-next-line in some places
+  // using setTimeout (setImmediate would be more correct) to void too many
+  // changes in case the promise resolves immediately,
+  const setBusyWrap = <TArgs extends unknown[], T>(func: (...X: TArgs) => Promise<T>) => (...args: TArgs) => {
+    let doit = true;
+    // setImmediate(() => doit && setBusy(true));
+    setTimeout(() => doit && setBusy(true), 0);
+    return func(...args).finally(() => {
+      doit = false;
+      setBusy(false);
+    });
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getDevices = useCallback(setBusyWrap(async (usbRequest = true) => {
     if (lib && state?.initialized) {
       if (usbRequest) {
         await usbRequestDevices();
@@ -53,9 +70,10 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         alert('Failed to get devices.'); // TODO: proper error dialog
       }
     }
-  }, [lib, state?.initialized]);
+  }), [lib, state?.initialized]);
 
-  const openDevice = useCallback(async (name: string) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const openDevice = useCallback(setBusyWrap(async (name: string) => {
     if (lib && state?.initialized) {
       const { status } = await lib.sane_open(name);
       setState(lib.sane_get_state());
@@ -65,18 +83,20 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         alert('Failed to open device.'); // TODO: proper error dialog
       }
     }
-  }, [lib, state?.initialized]);
+  }), [lib, state?.initialized]);
 
-  const closeDevice = useCallback(async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const closeDevice = useCallback(setBusyWrap(async () => {
     if (lib && state?.initialized) {
       await lib.sane_close();
       setState(lib.sane_get_state());
       setOptions([]);
       setParameters(null);
     }
-  }, [lib, state?.initialized]);
+  }), [lib, state?.initialized]);
 
-  const setOptionValue = useCallback(async (option: number, value?: any) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setOptionValue = useCallback(setBusyWrap(async (option: number, value?: any) => {
     if (lib && state?.initialized) {
       // XXX: value == undefined means set auto, this function should be split in two or use symbol to mean auto, add type to value first
       const { status, info } = value === undefined ? await lib.sane_control_option_set_auto(option) : await lib.sane_control_option_set_value(option, value);
@@ -88,7 +108,13 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
           setOptions(await saneGetOptions(lib));
           return; // skip get/update option, we fetch them all
         }
-        if (info.INEXACT || value === undefined) { // auto triggers get value
+        if (info.INEXACT || typeof value === 'number' || value === undefined) {
+          // auto triggers get value... ok
+          // number triggers get value... this is a quirk for fixed numbers
+          // because the conversion from floating to fixed point happens
+          // on the library side, we might get INEXACT == false but in
+          // reality there were some small difference
+          // XXX: this could probably be fixed on sane-wasm
           ({ value } = await lib.sane_control_option_get_value(option));
         }
         // update value
@@ -101,7 +127,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         alert('Failed to set option.'); // TODO: proper error dialog
       }
     }
-  }, [lib, state?.initialized]);
+  }), [lib, state?.initialized]);
 
   const startScan = useCallback((scanner: SANEImageScanner) => {
     if (lib && state?.initialized) {
@@ -174,7 +200,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   return (
     <SANEContext.Provider value={{
-      lib, state, devices, options, parameters, scanning,
+      busy, lib, state, devices, options, parameters, scanning,
       getDevices, openDevice, closeDevice, setOptionValue, startScan, stopScan,
     }}>
       {children}

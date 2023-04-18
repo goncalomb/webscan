@@ -47,14 +47,13 @@ function OptionLabel({ descriptor, noTitle = false }: { descriptor: SANEOptionDe
           <abbr title={descriptor.constraint.min}>{Math.round(descriptor.constraint.min * 100) / 100}</abbr>
           {"/MAX:"}
           <abbr title={descriptor.constraint.max}>{Math.round(descriptor.constraint.max * 100) / 100}</abbr>
-          {descriptor.constraint.quant !== 0 && descriptor.constraint.quant !== 1 ? ( // XXX: does the user really need the step value?
-            <>
-              {"/STEP:"}
-              <abbr title={descriptor.constraint.quant}>{Math.round(descriptor.constraint.quant * 100) / 100}</abbr>
-            </>
-          ) : null}
+          {"/STEP:"}
+          <abbr title={descriptor.constraint.quant || 1}>{Math.round((descriptor.constraint.quant || 1) * 100) / 100}</abbr>
           {"] "}
         </>
+      ) : null}
+      {descriptor.type === SANEType.STRING && descriptor.constraint_type === SANEConstraintType.NONE ? (
+        `[MAX:${descriptor.size}]`
       ) : null}
       {descriptor.cap.EMULATED ? <><abbr title="This option is not directly supported by the device, but its function is emulated and may still work.">[EMULATED]</abbr> </> : null}
       <abbr title={descriptor.desc}>[?]</abbr>
@@ -66,13 +65,28 @@ function OptionLabel({ descriptor, noTitle = false }: { descriptor: SANEOptionDe
  * Option input for text and number options.
  */
 function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
+  const [localValue, setLocalValue] = useState('');
+
   const onChange = useCallback((e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     if (descriptor.type === SANEType.INT || descriptor.type === SANEType.FIXED) {
       setValue(Number(e.target.value));
+      if (descriptor.constraint_type === SANEConstraintType.NONE || descriptor.constraint_type === SANEConstraintType.RANGE) {
+        setLocalValue(e.target.value);
+      }
     } else {
       setValue(e.target.value);
     }
-  }, [descriptor.type, setValue]);
+  }, [descriptor.type, descriptor.constraint_type, setValue]);
+
+  // numbers use an extra local state and onblur event to prevent issues
+  // while typing and being constantly "corrected" by the context value
+  // fixed numbers could be truncated to represent the actual accuracy
+  // XXX: improve fixed numbers
+
+  const onBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    setLocalValue('');
+  }, [setLocalValue]);
+
   return descriptor.constraint_type === SANEConstraintType.WORD_LIST || descriptor.constraint_type === SANEConstraintType.STRING_LIST ? (
     <label>
       <OptionLabel descriptor={descriptor} /><br />
@@ -83,7 +97,28 @@ function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
   ) : (
     <label>
       <OptionLabel descriptor={descriptor} /><br />
-      <input type="text" value={value} onChange={onChange} />
+      {descriptor.type === SANEType.STRING ? (
+        <input type="text" maxLength={descriptor.size} value={value} onChange={onChange} />
+      ) : (descriptor.constraint_type === SANEConstraintType.RANGE ? (
+        <input
+          type="number"
+          maxLength={20}
+          value={localValue || value}
+          onBlur={onBlur}
+          min={descriptor.constraint.min}
+          max={descriptor.constraint.max}
+          step={descriptor.constraint.quant || 1}
+          onChange={onChange}
+        />
+      ) : (
+        <input
+          type="number"
+          maxLength={20}
+          value={localValue || value}
+          onBlur={onBlur}
+          onChange={onChange}
+        />
+      ))}
     </label>
   );
 }
@@ -123,9 +158,7 @@ const typeElements = {
 /**
  * Individual option.
  */
-function Option({ option: { pos, descriptor, value } }: { option: IOption }) {
-  const { setOptionValue } = useSANEContext();
-
+function Option({ pos, descriptor, value, setOptionValue }: IOption & { setOptionValue: (option: number, value: any) => void }) {
   const setValue = useCallback((value?: any) => {
     setOptionValue(pos, value);
   }, [pos, setOptionValue]);
@@ -167,15 +200,26 @@ function Option({ option: { pos, descriptor, value } }: { option: IOption }) {
 }
 
 /**
+ * Memoized version of Option.
+ */
+const OptionMemo = React.memo(Option);
+
+/**
  * Option group that contains a set of options.
  */
-function OptionGroup({ group, showAdvanced }: { group: IOptionGroup, showAdvanced: boolean }) {
+function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGroup, showAdvanced: boolean, setOptionValue: (option: number, value: any) => void }) {
   return (
     <>
       <h3>
         {group.title}
       </h3>
-      {group.options.map(o => !o.descriptor.cap.INACTIVE && (!o.descriptor.cap.ADVANCED || showAdvanced) ? <Option key={o.descriptor.name} option={o} /> : null)}
+      {group.options.map(o => !o.descriptor.cap.INACTIVE && (!o.descriptor.cap.ADVANCED || showAdvanced) ? (
+        <OptionMemo
+          key={o.descriptor.name}
+          setOptionValue={setOptionValue}
+          {...o}
+        />
+      ) : null)}
     </>
   );
 }
@@ -184,7 +228,7 @@ function OptionGroup({ group, showAdvanced }: { group: IOptionGroup, showAdvance
  * Option selector that contains all options and option groups.
  */
 export default function OptionsSelector() {
-  const { lib, options } = useSANEContext();
+  const { busy, lib, options, scanning, setOptionValue } = useSANEContext();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // deconstruct options and group them
@@ -211,13 +255,20 @@ export default function OptionsSelector() {
   }, [lib, options]);
 
   return (
-    <div className="OptionsSelector">
+    <fieldset className="OptionsSelector" disabled={busy || scanning}>
       {options.length ? (
         <label style={{ float: "right" }}>
           <input type="checkbox" defaultChecked={showAdvanced} onChange={e => setShowAdvanced(e.target.checked)} /> Show Advanced
         </label>
       ) : null}
-      {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? <OptionGroup key={g.title} group={g} showAdvanced={showAdvanced} /> : null)}
-    </div>
+      {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? (
+        <OptionGroup
+          key={g.title}
+          group={g}
+          showAdvanced={showAdvanced}
+          setOptionValue={setOptionValue}
+        />
+      ) : null)}
+    </fieldset>
   );
 }

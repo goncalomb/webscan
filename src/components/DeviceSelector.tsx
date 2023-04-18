@@ -1,37 +1,42 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSANEContext } from '../SANEContext';
 
 export default function DeviceSelector() {
-  const { state, devices, scanning, getDevices, openDevice, closeDevice } = useSANEContext();
+  const { busy, state, devices, scanning, getDevices, openDevice, closeDevice } = useSANEContext();
+  const [ failedTry, setFailedTry ] = useState(false);
   const refSelect = useRef<HTMLSelectElement>(null);
   return state?.initialized ? (
     <>
       <p>
-        <button onClick={e => getDevices(true)} disabled={state.open}>Select USB Devices</button>
+        <button onClick={e => getDevices(true, true).catch(() => setFailedTry(true)) } disabled={state.open}>Authorize USB Scanner</button>
+        {' '}
+        {failedTry ? <button onClick={e => getDevices(true)} disabled={state.open}>Not Found? List All Devices</button> : null}
       </p>
-      {devices.length ? (
+      <p>
+        {devices.length ? (
+          <select ref={refSelect} disabled={state.open}>
+            {devices.map(d => <option key={d.name} value={d.name}>{`${d.model} (${d.vendor}) [${d.name}]`}</option>)}
+          </select>
+        ) : (
+          <select key="NO" defaultValue="NO">
+            <option value="NO" disabled>NO SUPPORTED DEVICES FOUND</option>
+          </select>
+        )}
+      </p>
+      {state.open ? (
         <>
           <p>
-            <select ref={refSelect} disabled={state.open}>
-              {devices.map(d => <option key={d.name} value={d.name}>{`${d.model} (${d.vendor}) [${d.name}]`}</option>)}
-            </select>
+            <button onClick={e => closeDevice()} disabled={busy || scanning}>Close Device</button> <small style={{ color: 'midnightblue' }}><strong>Close the device before unplugging or leaving.</strong></small>
           </p>
-          {state.open ? (
-            <>
-              <p>
-                <button onClick={e => closeDevice()} disabled={scanning}>Close Device</button> <small style={{ color: 'midnightblue' }}><strong>Close the device before unplugging or leaving.</strong></small>
-              </p>
-              <p>
-                <small style={{ color: 'midnightblue' }}>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
-              </p>
-            </>
-          ) : (
-            <p>
-              <button onClick={e => openDevice(refSelect?.current?.value || '')}>Select Device</button>
-            </p>
-          )}
+          <p>
+            <small style={{ color: 'midnightblue' }}>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
+          </p>
         </>
-      ) : null}
+      ) : (
+        <p>
+          <button onClick={e => openDevice(refSelect?.current?.value || '')} disabled={!devices.length}>Select Device</button>
+        </p>
+      )}
     </>
   ) : null;
 }

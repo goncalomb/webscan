@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useState } from "react";
 import { useEffect } from "react";
-import { isNavigatorSupported, usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
+import { usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
 import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
@@ -11,7 +11,7 @@ interface ISANEContext {
   options: { descriptor: SANEOptionDescriptor, value: any }[];
   parameters: SANEParameters | null;
   scanning: boolean;
-  getDevices: () => void;
+  getDevices: (usbRequest?: boolean, usbRequestFiltered?: boolean) => Promise<void>;
   openDevice: (name: string) => void;
   closeDevice: () => void;
   setOptionValue: (option: number, value?: any) => void;
@@ -42,7 +42,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   // breaks hooks linting a bit, using eslint-disable-next-line in some places
   // using setTimeout (setImmediate would be more correct) to void too many
   // changes in case the promise resolves immediately,
-  const setBusyWrap = <TArgs extends unknown[], T>(func: (...X: TArgs) => Promise<T>) => (...args: TArgs) => {
+  const setBusyWrap = <TArgs extends any[], T>(func: (...X: TArgs) => Promise<T>) => (...args: TArgs) => {
     let doit = true;
     // setImmediate(() => doit && setBusy(true));
     setTimeout(() => doit && setBusy(true), 0);
@@ -53,13 +53,15 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const getDevices = useCallback(setBusyWrap(async (usbRequest = true) => {
-    if (lib && state?.initialized) {
+  const getDevices = useCallback(setBusyWrap(async (usbRequest = false, usbRequestFiltered = false) => {
+    if (lib) {
       if (usbRequest) {
-        await usbRequestDevices();
+        await usbRequestDevices(usbRequestFiltered);
       }
 
-      await lib.sane_exit();
+      if (state?.initialized) {
+        await lib.sane_exit();
+      }
       await lib.sane_init();
       setState(lib.sane_get_state());
 
@@ -161,23 +163,14 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   useEffect(() => {
     saneGetLibSANE().then(lib => {
       setLib(lib);
-      if (isNavigatorSupported()) {
-        lib.sane_init();
-        setState(lib.sane_get_state());
-      }
     });
     // eslint-disable-next-line
   }, [/* no deps, fire this only once */]);
 
-  // initialize devices
-  useEffect(() => {
-    getDevices(false);
-  }, [getDevices]);
-
   // set usb listener
   useEffect(() => {
     if (state?.initialized) {
-      const handler = () => getDevices(false);
+      const handler = () => getDevices();
       usbAddListener(handler);
       return () => {
         usbRemoveListener(handler);

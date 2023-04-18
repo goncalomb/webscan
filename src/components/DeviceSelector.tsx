@@ -7,7 +7,7 @@ export default function DeviceSelector() {
   return state?.initialized ? (
     <>
       <p>
-        <button onClick={e => getDevices()} disabled={state.open}>Select USB Devices</button>
+        <button onClick={e => getDevices(true)} disabled={state.open}>Select USB Devices</button>
       </p>
       {devices.length ? (
         <>

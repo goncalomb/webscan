@@ -11,5 +11,8 @@ if [ ! -d public/sane-wasm ]; then
     ./sane-wasm/build.sh --clean --no-build
 fi
 
+# install dependencies
+npm install
+
 # build app
-npm run build
+GENERATE_SOURCEMAP=false npm run build

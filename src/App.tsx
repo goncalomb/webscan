@@ -29,7 +29,7 @@ export default function App() {
     <div className="App">
       <header>
         <h1>WebScan</h1>
-        <p>An experimental project to bring document/image scanning to the web (USB scanners). </p>
+        <p>An experimental project to bring document/image scanning to the web (USB scanners).</p>
       </header>
       <CanvasContextProvider>
         <Main />

@@ -4,8 +4,8 @@ import { usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
 import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
-  busy: boolean;
   lib: LibSANE | null;
+  busy: boolean;
   state: SANEState | null;
   devices: SANEDevice[];
   options: { descriptor: SANEOptionDescriptor, value: any }[];
@@ -30,8 +30,8 @@ export const useSANEContext = () => {
 };
 
 export const SANEContextProvider = ({ children }: { children: any }) => {
-  const [busy, setBusy] = useState<ISANEContext['busy']>(false);
   const [lib, setLib] = useState<ISANEContext['lib']>(null);
+  const [busy, setBusy] = useState<ISANEContext['busy']>(false);
   const [state, setState] = useState<ISANEContext['state']>(null);
   const [devices, setDevices] = useState<ISANEContext['devices']>([]);
   const [options, setOptions] = useState<ISANEContext['options']>([]);
@@ -94,6 +94,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
       setState(lib.sane_get_state());
       setOptions([]);
       setParameters(null);
+      await getDevices();
     }
   }), [lib, state?.initialized]);
 
@@ -169,14 +170,14 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   // set usb listener
   useEffect(() => {
-    if (state?.initialized) {
+    if (state?.open === false) {
       const handler = () => getDevices();
       usbAddListener(handler);
       return () => {
         usbRemoveListener(handler);
       };
     }
-  }, [getDevices, state?.initialized]);
+  }, [getDevices, state?.open]);
 
   // set beforeunload listener (alert while state.open == true)
   useEffect(() => {
@@ -193,7 +194,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   return (
     <SANEContext.Provider value={{
-      busy, lib, state, devices, options, parameters, scanning,
+      lib, busy, state, devices, options, parameters, scanning,
       getDevices, openDevice, closeDevice, setOptionValue, startScan, stopScan,
     }}>
       {children}

@@ -4,7 +4,7 @@ import { useSANEContext } from '../SANEContext';
 export default function DeviceSelector() {
   const { busy, state, devices, scanning, getDevices, openDevice, closeDevice } = useSANEContext();
   const [ failedTry, setFailedTry ] = useState(false);
-  const refSelect = useRef<HTMLSelectElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
   return state?.initialized ? (
     <>
       <p>
@@ -14,7 +14,7 @@ export default function DeviceSelector() {
       </p>
       <p>
         {devices.length ? (
-          <select ref={refSelect} disabled={state.open}>
+          <select ref={selectRef} disabled={state.open}>
             {devices.map(d => <option key={d.name} value={d.name}>{`${d.model} (${d.vendor}) [${d.name}]`}</option>)}
           </select>
         ) : (
@@ -34,7 +34,7 @@ export default function DeviceSelector() {
         </>
       ) : (
         <p>
-          <button onClick={e => openDevice(refSelect?.current?.value || '')} disabled={!devices.length}>Select Device</button>
+          <button onClick={e => openDevice(selectRef.current?.value || '')} disabled={!devices.length}>Select Device</button>
         </p>
       )}
     </>

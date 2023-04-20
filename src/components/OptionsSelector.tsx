@@ -228,7 +228,7 @@ function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGr
  * Option selector that contains all options and option groups.
  */
 export default function OptionsSelector() {
-  const { busy, lib, options, scanning, setOptionValue } = useSANEContext();
+  const { lib, busy, options, scanning, setOptionValue } = useSANEContext();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // deconstruct options and group them

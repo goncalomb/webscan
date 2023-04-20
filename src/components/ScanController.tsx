@@ -26,7 +26,7 @@ function constructErrorList(parameters: SANEParameters) {
 }
 
 export default function ScanController() {
-  const { lib, state, parameters, scanning, startScan, stopScan } = useSANEContext();
+  const { lib, busy, state, parameters, scanning, startScan, stopScan } = useSANEContext();
   const { resetCanvas, putImageData } = useCanvasContext();
 
   const startImageScan = useCallback(() => {
@@ -64,11 +64,11 @@ export default function ScanController() {
       {errorList}
       {scanning ? (
         <p>
-          <button onClick={e => stopScan()}>Stop Scan</button> <small style={{ color: 'midnightblue' }}><strong>Scanning...</strong></small>
+          <button onClick={e => stopScan()} disabled={busy}>Stop Scan</button> <small style={{ color: 'midnightblue' }}><strong>Scanning...</strong></small>
         </p>
       ) : (
         <p>
-          <button onClick={e => startImageScan()} disabled={!!errorList}>Start Scan</button>
+          <button onClick={e => startImageScan()} disabled={busy || !!errorList}>Start Scan</button>
           {' '}
           {errorList ? <small style={{ color: 'firebrick' }}><strong>Unsupported format choose other options.</strong></small> : null}
         </p>

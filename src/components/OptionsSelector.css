@@ -1,12 +1,3 @@
-fieldset.OptionsSelector {
-  /* we are abusing a fieldset to wrap all options */
-  /* clear default style */
-  display: contents;
-  border: none;
-  margin: 0;
-  padding: 0;
-}
-
 .OptionsSelector>h3 {
   margin: .7em 0;
 }

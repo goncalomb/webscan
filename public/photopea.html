@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebScan Photopea</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #282c34;
+      color: white;
+      margin: 0;
+    }
+
+    a {
+      color: white;
+    }
+
+    body>div {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      margin: 1em;
+    }
+
+    iframe {
+      border: 0;
+      flex: 1;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="flex">
+    <header>
+      <strong>WebScan Photopea</strong>
+      (powered by <a href="https://www.photopea.com/" target="_blank">photopea.com</a>)
+      <small>
+        (this page requires some of the
+        <a href="https://caniuse.com/mdn-html_elements_iframe_credentialless" target="_blank">latest web features</a>,
+        if you can't see the editor try on the latest version of Chrome/Edge)
+      </small>
+    </header>
+    <iframe src="about:blank" credentialless></iframe>
+  </div>
+  <script>
+    (function () {
+      const i = document.querySelector("iframe");
+      let ready = false;
+      window.addEventListener("message", ({ origin, source, data }) => {
+        if (origin === window.origin && source === window.opener) {
+          if (data.type === "photopea") {
+            i.contentWindow.postMessage(data.data, "*");
+          } /* else if (data.type === "...") {
+            // ...
+          } */
+        } else if (source === i.contentWindow) {
+          if (window.opener) {
+            window.opener.postMessage({ type: "photopea", data }, window.origin);
+            if (!ready) {
+              window.opener.postMessage({ type: "ready" }, window.origin);
+              ready = true;
+            }
+          }
+        }
+      });
+      if (window.opener || !confirm("This page is not connected to WebScan. Go to WebScan?")) {
+        i.src = "https://www.photopea.com/";
+      } else {
+        window.location = "/";
+      }
+    })();
+  </script>
+</body>
+
+</html>

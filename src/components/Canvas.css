@@ -1,6 +1,23 @@
-.Canvas {
+.Canvas>div:first-child {
   width: 500px;
-  height: calc(500px * 1.414);
+  min-height: 200px;
+  /* A size paper */
+  max-height: calc(500px * 1.414);
   border: 2px solid #aaa;
   overflow: auto;
+  margin-bottom: 1em;
+}
+
+.Canvas input[type="number"] {
+  max-width: 80px;
+}
+
+.Canvas canvas {
+  display: block;
+  cursor: pointer;
+}
+
+.Canvas canvas.scaled {
+  max-height: inherit;
+  max-width: 100%;
 }

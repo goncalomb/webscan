@@ -22,3 +22,11 @@ button {
   box-sizing: border-box;
   padding: .2em .5em;
 }
+
+/* clear default style */
+fieldset {
+  display: contents;
+  border: none;
+  margin: 0;
+  padding: 0;
+}

@@ -1,9 +1,8 @@
 .Main {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  align-content: flex-start;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  flex-wrap: wrap-reverse;
 }
 
 .Main>div {
@@ -13,13 +12,16 @@
 }
 
 .Main>div:nth-child(1) {
-  flex: 0 1;
+  position: sticky;
+  top: 2em;
+  flex: 0 1 504px;
+  min-width: 0;
   padding: 1em;
 }
 
 .Main>div:nth-child(2) {
-  flex: 1;
-  padding: .2em 1em;
-  min-width: 350px;
+  flex: 1 1 350px;
+  min-width: 0;
   max-width: 450px;
+  padding: .2em 1em;
 }

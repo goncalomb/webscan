@@ -33,16 +33,14 @@ export default function Canvas() {
         <canvas ref={canvasRef} className={scaled ? 'scaled' : ''} title="Click to Zoom." onClick={onClickCanvas}></canvas>
       </div>
       <fieldset disabled={notInitialized}>
-        Export:
-        {' '}
-        <select ref={selectRef} >
+        <select title="Export Image Format." ref={selectRef} >
           <option value="image/jpeg">JPEG</option>
           <option value="image/png">PNG</option>
         </select>
         {' '}
         <input
           type="number"
-          title="Image Quality (%). JPEG only."
+          title="Export Image Quality (%). JPEG only."
           min={0}
           max={100}
           maxLength={5}

@@ -27,7 +27,7 @@ export default function Main() {
           </>
         ) : (
           <p>
-            <strong>Browser not supported!</strong><br />A modern browser that <a href="https://caniuse.com/webusb">supports WebUSB</a> is required.
+            <strong>Browser not supported!</strong><br />A modern browser that <a href="https://caniuse.com/webusb">supports WebUSB</a> is required. Try using the latest version of Chrome/Edge.
           </p>
         )}
       </div>

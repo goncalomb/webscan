@@ -4,20 +4,47 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
 }
 
 .App>header,
+.App>article,
 .App>footer {
   color: white;
   text-align: center;
+  margin: 0 1em;
 }
 
 .App>header a,
+.App>article a,
 .App>footer a {
   color: white;
 }
 
 .App>main {
   flex: 1;
+  margin: 1em 0;
+}
+
+.App>article {
+  align-self: center;
+  max-width: 720px;
+  transition: 500ms;
+}
+
+@media screen and (min-width: 700px) {
+  .App>article {
+    opacity: .7;
+  }
+
+  .App>article:hover {
+    opacity: 1;
+  }
+}
+
+.App>article h2>span {
+  text-decoration: underline;
+}
+
+.App>footer p {
+  margin: 2em 0;
 }

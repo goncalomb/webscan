@@ -118,7 +118,7 @@ export interface LibSANE {
   sane_control_option_set_auto: (option: number) => Promise<{ status: number; info: SANEInfo }>; // TODO: can be async (probably), fix sane-wasm
   sane_get_parameters: () => { status: number; parameters: SANEParameters };
   sane_start: () => { status: number; };
-  sane_read: () => { status: number; data: Uint8Array };
+  sane_read: () => { status: number; data: Uint8Array }; // TODO: can be async, fix sane-wasm
   sane_cancel: () => { status: number; };
   sane_strstatus: (status: number) => string;
 }
@@ -213,9 +213,9 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
 
   const params = parameters; // enforce ts type guard in next closure
   promise = new Promise((resolve, reject) => {
-    const read = () => {
+    const read = async () => {
       try {
-        const { status, data } = lib.sane_read(); // non-blocking
+        const { status, data } = await lib.sane_read(); // non-blocking
         if (status === lib.SANE_STATUS.EOF) {
           lib.sane_cancel(); // ignore status
           resolve();

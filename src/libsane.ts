@@ -119,7 +119,7 @@ export interface LibSANE {
   sane_get_parameters: () => { status: number; parameters: SANEParameters };
   sane_start: () => { status: number; };
   sane_read: () => { status: number; data: Uint8Array }; // TODO: can be async, fix sane-wasm
-  sane_cancel: () => { status: number; };
+  sane_cancel: () => { status: number; }; // TODO: can be async, fix sane-wasm
   sane_strstatus: (status: number) => string;
 }
 
@@ -182,17 +182,17 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
 
   const kill = (err?: Error) => {
     dead = err || true;
-    lib.sane_cancel(); // ignore status
   };
+  const cancel = () => kill();
 
   const state = lib.sane_get_state();
   if (!state.open) {
-    return { status, parameters, promise }; // fail, device not open
+    return { status, parameters, promise, cancel }; // fail, device not open
   }
 
   ({ status } = lib.sane_start());
   if (status !== lib.SANE_STATUS.GOOD) {
-    return { status, parameters, promise }; // fail, sane_start failed
+    return { status, parameters, promise, cancel }; // fail, sane_start failed
   }
 
   // after successful start, sane_cancel needs to be called and wait for
@@ -200,14 +200,14 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
 
   ({ status, parameters } = lib.sane_get_parameters());
   if (status !== lib.SANE_STATUS.GOOD) {
-    kill(); // kill, sane_get_parameters failed
+    kill(new Error()); // kill, sane_get_parameters failed
   }
 
   if (onStart && !dead) {
     try {
       onStart(parameters);
     } catch (e) {
-      kill(e instanceof Error ? e : undefined);
+      kill(e instanceof Error ? e : new Error());
     }
   }
 
@@ -217,17 +217,24 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
       try {
         const { status, data } = await lib.sane_read(); // non-blocking
         if (status === lib.SANE_STATUS.EOF) {
-          lib.sane_cancel(); // ignore status
+          await lib.sane_cancel(); // ignore status
           resolve();
           return;
         }
-        if (status !== lib.SANE_STATUS.GOOD) {
+        if (status === lib.SANE_STATUS.CANCELLED) {
           if (dead instanceof Error) {
             reject(dead);
             return;
           }
+          resolve();
+          return;
+        }
+        if (status !== lib.SANE_STATUS.GOOD) {
           reject();
           return;
+        }
+        if (dead) {
+          await lib.sane_cancel(); // ignore status
         }
         if (data.length) {
           onData(params, data);
@@ -239,8 +246,7 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
     };
     setTimeout(read, 200);
   });
-
-  return { status, parameters, promise };
+  return { status, parameters, promise, cancel };
 }
 
 /**

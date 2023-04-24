@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import bytes from 'bytes';
 import { useSANEContext } from '../SANEContext';
 import { useCanvasContext } from './CanvasContext';
@@ -26,8 +26,9 @@ function constructErrorList(parameters: SANEParameters) {
 }
 
 export default function ScanController() {
-  const { lib, busy, state, parameters, scanning, startScan, stopScan } = useSANEContext();
+  const { lib, busy, state, parameters, scanning, startScan } = useSANEContext();
   const { resetCanvas, putImageData } = useCanvasContext();
+  const [stopScan, setStopScan] = useState(() => () => { });
 
   const startImageScan = useCallback(() => {
     // its safe to keep a reference to resetCanvas and putImageData because
@@ -35,9 +36,10 @@ export default function ScanController() {
     const scanner = new SANEImageScanner((data: ImageData, line: number) => {
       putImageData(data, line);
     });
-    const parameters = startScan(scanner);
-    if (parameters) {
-      resetCanvas(parameters.pixels_per_line, parameters.lines);
+    const result = startScan(scanner);
+    if (result) {
+      resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
+      setStopScan(() => result.cancel);
     }
   }, [startScan, resetCanvas, putImageData]);
 

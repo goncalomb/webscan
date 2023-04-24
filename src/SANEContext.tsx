@@ -15,8 +15,7 @@ interface ISANEContext {
   openDevice: (name: string) => void;
   closeDevice: () => void;
   setOptionValue: (option: number, value?: any) => void;
-  startScan: (scanner: SANEImageScanner) => SANEParameters | null;
-  stopScan: () => void;
+  startScan: (scanner: SANEImageScanner) => { parameters: SANEParameters, cancel: () => void } | null;
 }
 
 const SANEContext = React.createContext<ISANEContext | null>(null);
@@ -134,7 +133,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   const startScan = useCallback((scanner: SANEImageScanner) => {
     if (lib && state?.initialized) {
-      const { /* status, */ parameters, promise } = saneDoScan(lib, scanner.consumeData.bind(scanner), scanner.initialize.bind(scanner));
+      const { /* status, */ parameters, promise, cancel } = saneDoScan(lib, scanner.consumeData.bind(scanner), scanner.initialize.bind(scanner));
       if (promise) {
         // scan started
         setParameters(parameters);
@@ -145,17 +144,10 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         }).finally(() => {
           setScanning(false);
         });
-        return parameters;
+        return { parameters, cancel };
       } else {
         alert('Failed to start scanning.'); // TODO: proper error dialog
       }
-    }
-    return null;
-  }, [lib, state?.initialized]);
-
-  const stopScan = useCallback(() => {
-    if (lib && state?.initialized) {
-      lib.sane_cancel(); // ignore status
     }
     return null;
   }, [lib, state?.initialized]);
@@ -195,7 +187,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   return (
     <SANEContext.Provider value={{
       lib, busy, state, devices, options, parameters, scanning,
-      getDevices, openDevice, closeDevice, setOptionValue, startScan, stopScan,
+      getDevices, openDevice, closeDevice, setOptionValue, startScan,
     }}>
       {children}
     </SANEContext.Provider>

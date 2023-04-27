@@ -126,10 +126,30 @@ export interface LibSANE {
 declare global {
   interface Window {
     LibSANE?: (options?: any) => Promise<LibSANE>;
+    webscanEnableDebug: (sane: any) => void;
   }
 }
 
 // utilities
+
+/**
+ * Exported global to aid debugging.
+ */
+window.webscanEnableDebug = (sane = true) => {
+  if (sane === true) {
+    sessionStorage.setItem('sane', JSON.stringify({
+      debugSANE: true,
+      debugUSB: true,
+      debugFunctionCalls: true,
+      debugTestDevices: 5,
+    }));
+  } else if (sane) {
+    sessionStorage.setItem('sane', JSON.stringify(sane));
+  } else {
+    sessionStorage.removeItem('sane');
+  }
+  window.location.reload();
+};
 
 /**
  * SANE utility function to initialize library (window.LibSANE).
@@ -140,7 +160,17 @@ export async function saneGetLibSANE() {
   }
   const l = window.LibSANE;
   window.LibSANE = undefined; // nuke global variable
-  return l();
+  const sane = JSON.parse(sessionStorage.getItem("sane") || "{}");
+  return l({
+    locateFile: (path: string, scriptDirectory: string) => {
+      // fix for libsane.data path
+      if (path === 'libsane.data' && scriptDirectory === '') {
+        return `sane-wasm/${path}`;
+      }
+      return `${scriptDirectory}${path}`;
+    },
+    sane,
+  });
 }
 
 /**

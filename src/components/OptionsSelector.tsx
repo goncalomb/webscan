@@ -1,7 +1,7 @@
 import React, { ChangeEvent, useCallback, useMemo, useState } from 'react';
 import './OptionsSelector.css';
 import { useSANEContext } from '../SANEContext';
-import { SANEConstraintType, SANEOptionDescriptor, SANEType, SANEUnit } from '../libsane';
+import { SANEConstraintType, SANEOptionDescriptor, SANEValueType, SANEUnit } from '../libsane';
 
 interface IOptionGroup {
   title: string;
@@ -44,15 +44,15 @@ function OptionLabel({ descriptor, noTitle = false }: { descriptor: SANEOptionDe
       {descriptor.constraint_type === SANEConstraintType.RANGE ? (
         <>
           {"[MIN:"}
-          <abbr title={descriptor.constraint.min}>{Math.round(descriptor.constraint.min * 100) / 100}</abbr>
+          <abbr title={`${descriptor.constraint.min}`}>{Math.round(descriptor.constraint.min * 100) / 100}</abbr>
           {"/MAX:"}
-          <abbr title={descriptor.constraint.max}>{Math.round(descriptor.constraint.max * 100) / 100}</abbr>
+          <abbr title={`${descriptor.constraint.max}`}>{Math.round(descriptor.constraint.max * 100) / 100}</abbr>
           {"/STEP:"}
-          <abbr title={descriptor.constraint.quant || 1}>{Math.round((descriptor.constraint.quant || 1) * 100) / 100}</abbr>
+          <abbr title={`${descriptor.constraint.quant || 1}`}>{Math.round((descriptor.constraint.quant || 1) * 100) / 100}</abbr>
           {"] "}
         </>
       ) : null}
-      {descriptor.type === SANEType.STRING && descriptor.constraint_type === SANEConstraintType.NONE ? (
+      {descriptor.type === SANEValueType.STRING && descriptor.constraint_type === SANEConstraintType.NONE ? (
         `[MAX:${descriptor.size}]`
       ) : null}
       {descriptor.cap.EMULATED ? <><abbr title="This option is not directly supported by the device, but its function is emulated and may still work.">[EMULATED]</abbr> </> : null}
@@ -68,7 +68,7 @@ function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
   const [localValue, setLocalValue] = useState('');
 
   const onChange = useCallback((e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    if (descriptor.type === SANEType.INT || descriptor.type === SANEType.FIXED) {
+    if (descriptor.type === SANEValueType.INT || descriptor.type === SANEValueType.FIXED) {
       setValue(Number(e.target.value));
       if (descriptor.constraint_type === SANEConstraintType.NONE || descriptor.constraint_type === SANEConstraintType.RANGE) {
         setLocalValue(e.target.value);
@@ -97,7 +97,7 @@ function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
   ) : (
     <label>
       <OptionLabel descriptor={descriptor} /><br />
-      {descriptor.type === SANEType.STRING ? (
+      {descriptor.type === SANEValueType.STRING ? (
         <input type="text" maxLength={descriptor.size} value={value} onChange={onChange} />
       ) : (descriptor.constraint_type === SANEConstraintType.RANGE ? (
         <input
@@ -147,12 +147,12 @@ function OptionInputButton({ descriptor, setValue }: IOptionInputProps) {
 
 // map each option type to a react element
 const typeElements = {
-  [SANEType.BOOL]: OptionInputBoolean,
-  [SANEType.INT]: OptionInputText,
-  [SANEType.FIXED]: OptionInputText,
-  [SANEType.STRING]: OptionInputText,
-  [SANEType.BUTTON]: OptionInputButton,
-  [SANEType.GROUP]: () => null, // never used
+  [SANEValueType.BOOL]: OptionInputBoolean,
+  [SANEValueType.INT]: OptionInputText,
+  [SANEValueType.FIXED]: OptionInputText,
+  [SANEValueType.STRING]: OptionInputText,
+  [SANEValueType.BUTTON]: OptionInputButton,
+  [SANEValueType.GROUP]: () => null, // never used
 };
 
 /**
@@ -164,7 +164,7 @@ function Option({ pos, descriptor, value, setOptionValue }: IOption & { setOptio
   }, [pos, setOptionValue]);
 
   // unsupported option
-  if (descriptor.cap.HARD_SELECT || (descriptor.type !== SANEType.STRING && descriptor.size > 1)) {
+  if (descriptor.cap.HARD_SELECT || (descriptor.type !== SANEValueType.STRING && descriptor.size > 1)) {
     // TODO: implement unsupported options
     //       number arrays (size > 1) and cap.HARD_SELECT
     //       these are less common option types, but some may still be useful

@@ -24,3 +24,4 @@ yarn-error.log*
 
 # mine
 /public/sane-wasm
+/src/libsane-types.ts

@@ -15,7 +15,7 @@ interface ISANEContext {
   openDevice: (name: string) => void;
   closeDevice: () => void;
   setOptionValue: (option: number, value?: any) => void;
-  startScan: (scanner: SANEImageScanner) => { parameters: SANEParameters, cancel: () => void } | null;
+  startScan: (scanner: SANEImageScanner) => { parameters: SANEParameters, promise: Promise<void>, cancel: () => void } | null;
 }
 
 const SANEContext = React.createContext<ISANEContext | null>(null);
@@ -144,7 +144,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         }).finally(() => {
           setScanning(false);
         });
-        return { parameters, cancel };
+        return { parameters, promise, cancel };
       } else {
         alert('Failed to start scanning.'); // TODO: proper error dialog
       }

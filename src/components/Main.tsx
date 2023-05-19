@@ -6,11 +6,13 @@ import { isNavigatorSupported } from '../utils';
 import ScanController from './ScanController';
 import OptionsSelector from './OptionsSelector';
 import Disclaimer from './Disclaimer';
+import ImageList from './ImageList';
 
 export default function Main() {
   return (
     <main className="Main">
       <div>
+        <ImageList />
         <Canvas />
       </div>
       <div>

@@ -186,6 +186,7 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
 export class SANEImageScanner {
 
   _line: number = 0;
+  _allData: Uint8ClampedArray = new Uint8ClampedArray();
   _reminder = new Uint8ClampedArray();
   _onImageData;
 
@@ -217,6 +218,7 @@ export class SANEImageScanner {
     // what do we support then?
     // we support GRAY and RGB single-pass, 1 and 8-bit, known height
     // that should cover most modern scanners
+    this._allData = new Uint8ClampedArray(parameters.lines * parameters.pixels_per_line * 4);
   }
 
   consumeData(parameters: SANEParameters, data: Uint8Array) {
@@ -284,7 +286,12 @@ export class SANEImageScanner {
     }
     this._reminder = dataIn.subarray(ik);
     this._onImageData(new ImageData(dataOut, parameters.pixels_per_line), this._line);
+    this._allData.set(dataOut, this._line * parameters.pixels_per_line * 4);
     this._line += lc;
+  }
+
+  getFullImage(parameters: SANEParameters) {
+    return new ImageData(this._allData, parameters.pixels_per_line);
   }
 
 }

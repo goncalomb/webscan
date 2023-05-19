@@ -27,7 +27,7 @@ function constructErrorList(parameters: SANEParameters) {
 
 export default function ScanController() {
   const { lib, busy, state, parameters, scanning, startScan } = useSANEContext();
-  const { resetCanvas, putImageData } = useCanvasContext();
+  const { resetCanvas, putImageData, imageListAdd } = useCanvasContext();
   const [stopScan, setStopScan] = useState(() => () => { });
 
   const startImageScan = useCallback(() => {
@@ -40,8 +40,11 @@ export default function ScanController() {
     if (result) {
       resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
       setStopScan(() => result.cancel);
+      result.promise.then(() => {
+        imageListAdd(scanner.getFullImage(result.parameters));
+      });
     }
-  }, [startScan, resetCanvas, putImageData]);
+  }, [startScan, resetCanvas, putImageData, imageListAdd]);
 
   const errorList = parameters ? constructErrorList(parameters) : null;
   return state?.open && parameters ? (

@@ -53,13 +53,23 @@ class PhotopeaWindowManager {
   }
 }
 
+export interface IImageListData {
+  id: number;
+  data: ImageData;
+}
+
 interface ICanvasContext {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   notInitialized: boolean;
+  imageList: IImageListData[];
   resetCanvas: (width: number, height: number) => void;
   putImageData: (data: ImageData, dy: number) => void;
   exportDownload: (type: string, quality: number) => void;
   exportPhotopea: (type: string, quality: number) => void;
+  imageListAdd: (data: ImageData) => void;
+  imageListSelect: (id: number) => void;
+  imageListMove: (id: number, n: number) => void;
+  imageListDelete: (id: number) => void;
 }
 
 const CanvasContext = React.createContext<ICanvasContext | null>(null);
@@ -77,12 +87,19 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
   const [notInitialized, setNotInitialized] = useState(true);
   const ctxRef = useRef<CanvasRenderingContext2D>();
   const photopeaManagerRef = useRef(new PhotopeaWindowManager());
+  const [imageList, setImageList] = useState<IImageListData[]>([]);
 
   const resetCanvas = useCallback((width: number, height: number) => {
     if (canvasRef.current) {
-      setNotInitialized(false);
-      canvasRef.current.width = width;
-      canvasRef.current.height = height;
+      if (width === 0 || height === 0) {
+        setNotInitialized(true);
+        canvasRef.current.width = 500;
+        canvasRef.current.height = 150;
+      } else {
+        setNotInitialized(false);
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
+      }
       ctxRef.current = canvasRef.current.getContext('2d') || undefined;
     }
   }, []);
@@ -122,6 +139,34 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     }
   }, []);
 
+  const imageListAdd = useCallback((data: ImageData) => {
+    setImageList(imageList => [...imageList, { id: Date.now(), data }]);
+  }, [setImageList]);
+
+  const imageListSelect = useCallback((id: number) => {
+    const item = imageList.find(item => item.id === id);
+    if (ctxRef.current && item) {
+      resetCanvas(item.data.width, item.data.height);
+      ctxRef.current.putImageData(item.data, 0, 0);
+    }
+  }, [imageList, resetCanvas]);
+
+  const imageListMove = useCallback((id: number, n: number) => {
+    setImageList(imageList => {
+      const i = imageList.findIndex(item => item.id === id);
+      if (i !== -1 && i + n >= 0) {
+        imageList = [...imageList];
+        imageList.splice(i + n, 0, ...imageList.splice(i, 1));
+      }
+      return imageList;
+    });
+  }, [setImageList]);
+
+  const imageListDelete = useCallback((id: number) => {
+    setImageList(imageList => imageList.filter(item => item.id !== id));
+    resetCanvas(0, 0);
+  }, [setImageList, resetCanvas]);
+
   // draw canvas placeholder
   useEffect(() => {
     if (canvasRef.current) {
@@ -150,8 +195,8 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
 
   return (
     <CanvasContext.Provider value={{
-      notInitialized, canvasRef,
-      resetCanvas, putImageData, exportDownload, exportPhotopea,
+      notInitialized, canvasRef, imageList,
+      resetCanvas, putImageData, exportDownload, exportPhotopea, imageListAdd, imageListSelect, imageListMove, imageListDelete,
     }}>
       {children}
     </CanvasContext.Provider>

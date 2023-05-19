@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import bytes from 'bytes';
 import { useSANEContext } from '../SANEContext';
 import { useCanvasContext } from './CanvasContext';
 import { SANEFrame, SANEImageScanner, SANEParameters } from '../libsane';
+import { ImageBytes } from './Utilities';
 
 function constructErrorList(parameters: SANEParameters) {
   const arr = [];
@@ -62,7 +62,7 @@ export default function ScanController() {
           <>
             {`${parameters.pixels_per_line} x ${parameters.lines} pixels`}
             {' / '}
-            {((b: number) => <><abbr title={`${b} bytes`}>{bytes(b, { unitSeparator: ' ' })}</abbr> (RGB 8-bit)</>)(parameters.pixels_per_line * parameters.lines * 3)}
+            {<ImageBytes value={parameters.pixels_per_line * parameters.lines * 4} />}
           </>
         )}
       </p>

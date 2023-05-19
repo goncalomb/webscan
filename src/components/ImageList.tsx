@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { IImageListData, useCanvasContext } from './CanvasContext';
 import './ImageList.css';
+import { ImageBytes } from './Utilities';
 
 const PREVIEW_CANVAS_WIDTH = 120;
 const PREVIEW_CANVAS_HEIGHT = Math.floor(PREVIEW_CANVAS_WIDTH * Math.SQRT2);
@@ -34,7 +35,13 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
 
   return (
     <div>
-      <canvas ref={canvasRef} width={PREVIEW_CANVAS_WIDTH} height={PREVIEW_CANVAS_HEIGHT} title="Click to Zoom." onClick={() => onSelect(item.id)}/>
+      <canvas ref={canvasRef} width={PREVIEW_CANVAS_WIDTH} height={PREVIEW_CANVAS_HEIGHT} title="Click to select." onClick={() => onSelect(item.id)} />
+      <div>
+        <small><ImageBytes value={item.data} /></small>
+      </div>
+      <div>
+        <small>{item.data.width} x {item.data.height}</small>
+      </div>
       <div>
         <button onClick={() => onAction(item.id, -1)} title="Move image to left.">&lt;</button>
         {' '}

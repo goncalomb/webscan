@@ -88,13 +88,24 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
   const ctxRef = useRef<CanvasRenderingContext2D>();
   const photopeaManagerRef = useRef(new PhotopeaWindowManager());
   const [imageList, setImageList] = useState<IImageListData[]>([]);
+  const [selectedImage, setSelectedImage] = useState(0);
 
   const resetCanvas = useCallback((width: number, height: number) => {
     if (canvasRef.current) {
+      setSelectedImage(0);
       if (width === 0 || height === 0) {
         setNotInitialized(true);
-        canvasRef.current.width = 500;
-        canvasRef.current.height = 150;
+        const w = 500, h = 150;
+        const text = isNavigatorSupported() ? 'Image Preview' : '¯\\_(ツ)_/¯';
+        canvasRef.current.width = w;
+        canvasRef.current.height = h;
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.font = '40px sans-serif';
+          ctx.textBaseline = 'middle';
+          const m = ctx.measureText(text);
+          ctx.strokeText(text, (w / 2) - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, h / 2);
+        }
       } else {
         setNotInitialized(false);
         canvasRef.current.width = width;
@@ -140,16 +151,19 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
   }, []);
 
   const imageListAdd = useCallback((data: ImageData) => {
-    setImageList(imageList => [...imageList, { id: Date.now(), data }]);
-  }, [setImageList]);
+    const id = Date.now();
+    setImageList(imageList => [...imageList, { id, data }]);
+    setSelectedImage(id);
+  }, [setImageList, setSelectedImage]);
 
   const imageListSelect = useCallback((id: number) => {
     const item = imageList.find(item => item.id === id);
     if (ctxRef.current && item) {
       resetCanvas(item.data.width, item.data.height);
+      setSelectedImage(id);
       ctxRef.current.putImageData(item.data, 0, 0);
     }
-  }, [imageList, resetCanvas]);
+  }, [imageList, resetCanvas, setSelectedImage]);
 
   const imageListMove = useCallback((id: number, n: number) => {
     setImageList(imageList => {
@@ -164,24 +178,14 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
 
   const imageListDelete = useCallback((id: number) => {
     setImageList(imageList => imageList.filter(item => item.id !== id));
-    resetCanvas(0, 0);
-  }, [setImageList, resetCanvas]);
+    if (selectedImage === id) {
+      resetCanvas(0, 0);
+    }
+  }, [selectedImage, setImageList, resetCanvas]);
 
   // draw canvas placeholder
   useEffect(() => {
-    if (canvasRef.current) {
-      const w = 500, h = 150;
-      const text = isNavigatorSupported() ? 'Image Preview' : '¯\\_(ツ)_/¯';
-      canvasRef.current.width = w;
-      canvasRef.current.height = h;
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.font = '40px sans-serif';
-        ctx.textBaseline = 'middle';
-        const m = ctx.measureText(text);
-        ctx.strokeText(text, (w / 2) - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, h / 2);
-      }
-    }
+    resetCanvas(0, 0);
   }, []);
 
   // handle photopea window manager

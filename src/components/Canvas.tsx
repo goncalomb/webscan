@@ -1,16 +1,12 @@
-import React, { ChangeEvent, MouseEvent, useCallback, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useState } from 'react';
 import './Canvas.css';
 import { useCanvasContext } from './CanvasContext';
+import { useExportImageTypeSelector } from './Utilities';
 
 export default function Canvas() {
   const { canvasRef, notInitialized, exportDownload, exportPhotopea } = useCanvasContext();
-  const selectRef = useRef<HTMLSelectElement>(null);
   const [scaled, setScaled] = useState(true);
-  const [quality, setQuality] = useState(95);
-
-  const onChangeQuality = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    setQuality(Math.min(100, Math.max(0, Number(e.target.value))));
-  }, []);
+  const { format, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
 
   const onClickCanvas = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     if (scaled) {
@@ -33,24 +29,13 @@ export default function Canvas() {
         <canvas ref={canvasRef} className={scaled ? 'scaled' : ''} title="Click to Zoom." onClick={onClickCanvas}></canvas>
       </div>
       <fieldset disabled={notInitialized}>
-        <select title="Export Image Format." ref={selectRef} >
-          <option value="image/jpeg">JPEG</option>
-          <option value="image/png">PNG</option>
-        </select>
+        {elFormatSelector}
         {' '}
-        <input
-          type="number"
-          title="Export Image Quality (%). JPEG only."
-          min={0}
-          max={100}
-          maxLength={5}
-          value={quality}
-          onChange={onChangeQuality}
-        />
+        {elQualitySelector}
         {' '}
-        <button onClick={e => exportDownload(selectRef.current?.value || '', quality / 100)}>Download</button>
+        <button onClick={e => exportDownload(format, quality / 100)}>Download</button>
         {' '}
-        <button onClick={e => exportPhotopea(selectRef.current?.value || '', quality / 100)}>Send to Photopea</button>
+        <button onClick={e => exportPhotopea(format, quality / 100)}>Send to Photopea</button>
       </fieldset>
     </div>
   );

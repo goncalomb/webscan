@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { IImageListData, useCanvasContext } from './CanvasContext';
 import './ImageList.css';
 import { ImageBytes } from './Utilities';
@@ -55,6 +55,8 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
 
 export default function ImageList() {
   const { imageList, imageListSelect, imageListMove, imageListDelete } = useCanvasContext();
+  const listRef = useRef<HTMLDivElement>(null);
+  const countRef = useRef(0);
 
   const onSelect = useCallback((id: number) => {
     imageListSelect(id);
@@ -68,8 +70,15 @@ export default function ImageList() {
     }
   }, [imageListMove, imageListDelete]);
 
+  useLayoutEffect(() => {
+    if (imageList.length > countRef.current) {
+      listRef.current?.scrollTo(listRef.current.scrollWidth, 0);
+    }
+    countRef.current = imageList.length;
+  });
+
   return imageList.length ? (
-    <div className="ImageList">
+    <div ref={listRef} className="ImageList">
       {imageList.map(item => <ImageListItem key={item.id} item={item} onAction={onAction} onSelect={onSelect} />)}
     </div>
   ) : null;

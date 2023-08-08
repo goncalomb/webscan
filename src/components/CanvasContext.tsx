@@ -70,6 +70,7 @@ interface ICanvasContext {
   imageListSelect: (id: number) => void;
   imageListMove: (id: number, n: number) => void;
   imageListDelete: (id: number) => void;
+  imageListDeleteAll: () => void;
 }
 
 const CanvasContext = React.createContext<ICanvasContext | null>(null);
@@ -183,6 +184,11 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     }
   }, [selectedImage, setImageList, resetCanvas]);
 
+  const imageListDeleteAll = useCallback(() => {
+    setImageList([]);
+    resetCanvas(0, 0);
+  }, [setImageList, resetCanvas]);
+
   // draw canvas placeholder
   useEffect(() => {
     resetCanvas(0, 0);
@@ -200,7 +206,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
   return (
     <CanvasContext.Provider value={{
       notInitialized, canvasRef, imageList,
-      resetCanvas, putImageData, exportDownload, exportPhotopea, imageListAdd, imageListSelect, imageListMove, imageListDelete,
+      resetCanvas, putImageData, exportDownload, exportPhotopea, imageListAdd, imageListSelect, imageListMove, imageListDelete, imageListDeleteAll,
     }}>
       {children}
     </CanvasContext.Provider>

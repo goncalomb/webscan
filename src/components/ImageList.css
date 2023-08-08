@@ -1,16 +1,23 @@
 .ImageList {
+  margin-bottom: 1em;
+}
+
+.ImageList>*:not(:last-child) {
+  margin-bottom: .5em;
+}
+
+.ImageList-List {
   overflow-x: auto;
-  margin-bottom: .7em;
   padding-bottom: 5px;
   display: flex;
   gap: 5px;
 }
 
-.ImageList>div {
+.ImageList-List>div {
   text-align: center;
 }
 
-.ImageList canvas {
+.ImageList-List canvas {
   border: 2px solid #aaa;
   display: block;
   cursor: pointer;

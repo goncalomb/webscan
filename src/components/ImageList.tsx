@@ -54,7 +54,7 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
 });
 
 export default function ImageList() {
-  const { imageList, imageListSelect, imageListMove, imageListDelete } = useCanvasContext();
+  const { imageList, imageListSelect, imageListMove, imageListDelete, imageListDeleteAll } = useCanvasContext();
   const listRef = useRef<HTMLDivElement>(null);
   const countRef = useRef(0);
 
@@ -70,6 +70,12 @@ export default function ImageList() {
     }
   }, [imageListMove, imageListDelete]);
 
+  const onDeleteAll = useCallback(() => {
+    if (window.confirm("Delete all images permanently?")) {
+      imageListDeleteAll();
+    }
+  }, [imageListDeleteAll]);
+
   useLayoutEffect(() => {
     if (imageList.length > countRef.current) {
       listRef.current?.scrollTo(listRef.current.scrollWidth, 0);
@@ -79,7 +85,12 @@ export default function ImageList() {
 
   return imageList.length ? (
     <div ref={listRef} className="ImageList">
-      {imageList.map(item => <ImageListItem key={item.id} item={item} onAction={onAction} onSelect={onSelect} />)}
+      <div className="ImageList-List">
+        {imageList.map(item => <ImageListItem key={item.id} item={item} onAction={onAction} onSelect={onSelect} />)}
+      </div>
+      <div className="ImageList-Controls">
+        <button onClick={onDeleteAll} title="Delete image.">Delete ALL Images</button>
+      </div>
     </div>
   ) : null;
 }

@@ -1,5 +1,6 @@
 import React, { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { isNavigatorSupported } from '../utils';
+import { SANEOptionArray, saneWellKnownOptGetDPI } from '../libsane';
 
 class PhotopeaWindowManager {
 
@@ -56,6 +57,8 @@ class PhotopeaWindowManager {
 export interface IImageListData {
   id: number;
   data: ImageData;
+  options: SANEOptionArray;
+  dpi: number | null;
 }
 
 interface ICanvasContext {
@@ -66,7 +69,7 @@ interface ICanvasContext {
   putImageData: (data: ImageData, dy: number) => void;
   exportDownload: (type: string, quality: number) => void;
   exportPhotopea: (type: string, quality: number) => void;
-  imageListAdd: (data: ImageData) => void;
+  imageListAdd: (data: ImageData, options: SANEOptionArray) => void;
   imageListSelect: (id: number) => void;
   imageListMove: (id: number, n: number) => void;
   imageListDelete: (id: number) => void;
@@ -151,9 +154,10 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     }
   }, []);
 
-  const imageListAdd = useCallback((data: ImageData) => {
+  const imageListAdd = useCallback((data: ImageData, options: SANEOptionArray) => {
     const id = Date.now();
-    setImageList(imageList => [...imageList, { id, data }]);
+    const dpi = saneWellKnownOptGetDPI(options);
+    setImageList(imageList => [...imageList, { id, data, options, dpi }]);
     setSelectedImage(id);
   }, [setImageList, setSelectedImage]);
 

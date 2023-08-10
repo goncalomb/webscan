@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useState } from "react";
 import { useEffect } from "react";
 import { usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
-import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
+import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionArray, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
   lib: LibSANE | null;
@@ -15,7 +15,7 @@ interface ISANEContext {
   openDevice: (name: string) => void;
   closeDevice: () => void;
   setOptionValue: (option: number, value?: any) => void;
-  startScan: (scanner: SANEImageScanner) => { parameters: SANEParameters, promise: Promise<void>, cancel: () => void } | null;
+  startScan: (scanner: SANEImageScanner) => Promise<{ options: SANEOptionArray, parameters: SANEParameters, promise: Promise<void>, cancel: () => void } | null>;
 }
 
 const SANEContext = React.createContext<ISANEContext | null>(null);
@@ -131,8 +131,9 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     }
   }), [lib, state?.initialized]);
 
-  const startScan = useCallback((scanner: SANEImageScanner) => {
+  const startScan = useCallback(async (scanner: SANEImageScanner) => {
     if (lib && state?.initialized) {
+      const options = await saneGetOptions(lib);
       const { /* status, */ parameters, promise, cancel } = saneDoScan(lib, scanner.consumeData.bind(scanner), scanner.initialize.bind(scanner));
       if (promise) {
         // scan started
@@ -144,7 +145,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         }).finally(() => {
           setScanning(false);
         });
-        return { parameters, promise, cancel };
+        return { options, parameters, promise, cancel };
       } else {
         alert('Failed to start scanning.'); // TODO: proper error dialog
       }

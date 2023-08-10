@@ -30,18 +30,18 @@ export default function ScanController() {
   const { resetCanvas, putImageData, imageListAdd } = useCanvasContext();
   const [stopScan, setStopScan] = useState(() => () => { });
 
-  const startImageScan = useCallback(() => {
+  const startImageScan = useCallback(async () => {
     // its safe to keep a reference to resetCanvas and putImageData because
     // they never change, see useCanvasContext
     const scanner = new SANEImageScanner((data: ImageData, line: number) => {
       putImageData(data, line);
     });
-    const result = startScan(scanner);
+    const result = await startScan(scanner);
     if (result) {
       resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
       setStopScan(() => result.cancel);
       result.promise.then(() => {
-        imageListAdd(scanner.getFullImage(result.parameters));
+        imageListAdd(scanner.getFullImage(result.parameters), result.options);
       });
     }
   }, [startScan, resetCanvas, putImageData, imageListAdd]);

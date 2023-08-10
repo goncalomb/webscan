@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { IImageListData, useCanvasContext } from './CanvasContext';
 import './ImageList.css';
 import { ImageBytes } from './Utilities';
+import jsPDF from 'jspdf';
 
 const PREVIEW_CANVAS_WIDTH = 120;
 const PREVIEW_CANVAS_HEIGHT = Math.floor(PREVIEW_CANVAS_WIDTH * Math.SQRT2);
@@ -43,6 +44,9 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
         <small>{item.data.width} x {item.data.height}</small>
       </div>
       <div>
+        <small>{item.dpi ? item.dpi : 'unk'} dpi</small>
+      </div>
+      <div>
         <button onClick={() => onAction(item.id, -1)} title="Move image to left.">&lt;</button>
         {' '}
         <button onClick={() => onAction(item.id, 1)} title="Move image to right.">&gt;</button>
@@ -61,6 +65,23 @@ export default function ImageList() {
   const onSelect = useCallback((id: number) => {
     imageListSelect(id);
   }, [imageListSelect]);
+
+  const onExportAsPDF = useCallback(() => {
+    if (imageList.some(item => !item.dpi)) {
+      alert("Fail, some images have unknown DPI.");
+      return;
+    }
+    const doc = new jsPDF({
+      unit: 'in',
+    });
+    doc.deletePage(1);
+    imageList.forEach(item => {
+      const orientation = item.data.height >= item.data.width ? 'p' : 'l';
+      doc.addPage([item.data.width / item.dpi!, item.data.height / item.dpi!], orientation);
+      doc.addImage(item.data, 0, 0, item.data.width / item.dpi!, item.data.height / item.dpi!);
+    });
+    doc.save('scan.pdf');
+  }, [imageList]);
 
   const onAction = useCallback((id: number, n: number) => {
     if (n) {
@@ -84,12 +105,14 @@ export default function ImageList() {
   });
 
   return imageList.length ? (
-    <div ref={listRef} className="ImageList">
-      <div className="ImageList-List">
+    <div className="ImageList">
+      <div ref={listRef} className="ImageList-List">
         {imageList.map(item => <ImageListItem key={item.id} item={item} onAction={onAction} onSelect={onSelect} />)}
       </div>
       <div className="ImageList-Controls">
-        <button onClick={onDeleteAll} title="Delete image.">Delete ALL Images</button>
+        <button onClick={onDeleteAll} title="Delete all images.">Delete ALL Images</button>
+        {' '}
+        <button onClick={onExportAsPDF} title="Export as PDF, large files can cause the browser window to freeze.">Export as PDF</button>
       </div>
     </div>
   ) : null;

@@ -41,6 +41,8 @@ declare global {
 
 // utilities
 
+export type SANEOptionArray = { descriptor: SANEOptionDescriptor, value: any }[];
+
 /**
  * Exported global to aid debugging.
  */
@@ -78,7 +80,7 @@ export async function saneGetLibSANE() {
  * SANE utility function to fetch all options.
  */
 export async function saneGetOptions(lib: LibSANE) {
-  const options: { descriptor: SANEOptionDescriptor, value: any }[] = [];
+  const options: SANEOptionArray = [];
   let desc: SANEOptionDescriptor | null = null;
   for (let i = 0, n = -1; i === 0 || desc; i++) {
     ({ option_descriptor: desc } = lib.sane_get_option_descriptor(i));
@@ -100,6 +102,14 @@ export async function saneGetOptions(lib: LibSANE) {
     }
   }
   return options;
+}
+
+export function saneWellKnownOptGetDPI(options: SANEOptionArray) {
+  const dpiOption = options.find(opt => opt.descriptor.name === 'resolution');
+  if (dpiOption) {
+    return dpiOption.value as number;
+  }
+  return null;
 }
 
 /**

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { IImageListData, useCanvasContext } from './CanvasContext';
 import './ImageList.css';
 import { ImageBytes } from './Utilities';
+import { saveZipAs } from '../zip-stream';
 import jsPDF from 'jspdf';
 
 const PREVIEW_CANVAS_WIDTH = 120;
@@ -83,6 +84,36 @@ export default function ImageList() {
     doc.save('scan.pdf');
   }, [imageList]);
 
+  const onExportAsZIP = useCallback(() => {
+    const jobs = imageList.map(item => () => new Promise<ReadableStream<Uint8Array>>((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = item.data.width;
+      canvas.height = item.data.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.putImageData(item.data, 0, 0);
+      }
+      canvas.toBlob(blob => {
+        if (blob) {
+          resolve(blob.stream());
+        } else {
+          reject();
+        }
+      }, 'image/jpeg', 0.95);
+    }));
+
+    let i = 0;
+    const gen = jobs.values();
+    saveZipAs('scan.zip', () => {
+      const iter = gen.next();
+      return iter.done ? null : iter.value().then(stream => ({
+        name: `scan-${i++}.jpg`,
+        lastModified: new Date(2002),
+        stream: () => stream,
+      }));
+    });
+  }, [imageList]);
+
   const onAction = useCallback((id: number, n: number) => {
     if (n) {
       imageListMove(id, n);
@@ -113,6 +144,8 @@ export default function ImageList() {
         <button onClick={onDeleteAll} title="Delete all images.">Delete ALL Images</button>
         {' '}
         <button onClick={onExportAsPDF} title="Export as PDF, large files can cause the browser window to freeze.">Export as PDF</button>
+        {' '}
+        <button onClick={onExportAsZIP} title="Export as ZIP.">Export as ZIP</button>
       </div>
     </div>
   ) : null;

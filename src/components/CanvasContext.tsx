@@ -1,6 +1,6 @@
 import React, { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { isNavigatorSupported } from '../utils';
 import { SANEOptionArray, saneWellKnownOptGetDPI } from '../libsane';
+import { constructImageExportName, isNavigatorSupported } from '../utils';
 
 class PhotopeaWindowManager {
 
@@ -55,7 +55,8 @@ class PhotopeaWindowManager {
 }
 
 export interface IImageListData {
-  id: number;
+  id: string;
+  date: Date;
   data: ImageData;
   options: SANEOptionArray;
   dpi: number | null;
@@ -70,9 +71,9 @@ interface ICanvasContext {
   exportDownload: (type: string, quality: number) => void;
   exportPhotopea: (type: string, quality: number) => void;
   imageListAdd: (data: ImageData, options: SANEOptionArray) => void;
-  imageListSelect: (id: number) => void;
-  imageListMove: (id: number, n: number) => void;
-  imageListDelete: (id: number) => void;
+  imageListSelect: (id: string) => void;
+  imageListMove: (id: string, n: number) => void;
+  imageListDelete: (id: string) => void;
   imageListDeleteAll: () => void;
 }
 
@@ -92,11 +93,11 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
   const ctxRef = useRef<CanvasRenderingContext2D>();
   const photopeaManagerRef = useRef(new PhotopeaWindowManager());
   const [imageList, setImageList] = useState<IImageListData[]>([]);
-  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const resetCanvas = useCallback((width: number, height: number) => {
     if (canvasRef.current) {
-      setSelectedImage(0);
+      setSelectedImage(null);
       if (width === 0 || height === 0) {
         setNotInitialized(true);
         const w = 500, h = 150;
@@ -127,19 +128,15 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
 
   const exportDownload = useCallback((type: string, quality: number) => {
     if (canvasRef.current) {
-      const exts: { [k: string]: string } = {
-        'image/jpeg': 'jpg',
-        'image/png': 'png',
-      };
       canvasRef.current.toBlob(blob => {
         if (blob) {
           let a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = `scan.${exts[type] || 'bin'}`;
+          a.download = constructImageExportName(type, quality);
           a.click();
           setTimeout(() => URL.revokeObjectURL(a.href), 0);
         }
-      }, type, quality);
+      }, type, quality / 100);
     }
   }, []);
 
@@ -150,18 +147,18 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
         blob?.arrayBuffer().then(data => {
           photopeaManagerRef.current.post('photopea', data);
         });
-      }, type, quality);
+      }, type, quality / 100);
     }
   }, []);
 
   const imageListAdd = useCallback((data: ImageData, options: SANEOptionArray) => {
-    const id = Date.now();
+    const id = `${Date.now()}-${Math.floor(Math.random() * 1e10)}`; // XXX: use uuid?
     const dpi = saneWellKnownOptGetDPI(options);
-    setImageList(imageList => [...imageList, { id, data, options, dpi }]);
+    setImageList(imageList => [...imageList, { id, date: new Date(), data, options, dpi }]);
     setSelectedImage(id);
   }, [setImageList, setSelectedImage]);
 
-  const imageListSelect = useCallback((id: number) => {
+  const imageListSelect = useCallback((id: string) => {
     const item = imageList.find(item => item.id === id);
     if (ctxRef.current && item) {
       resetCanvas(item.data.width, item.data.height);
@@ -170,7 +167,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     }
   }, [imageList, resetCanvas, setSelectedImage]);
 
-  const imageListMove = useCallback((id: number, n: number) => {
+  const imageListMove = useCallback((id: string, n: number) => {
     setImageList(imageList => {
       const i = imageList.findIndex(item => item.id === id);
       if (i !== -1 && i + n >= 0) {
@@ -181,7 +178,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     });
   }, [setImageList]);
 
-  const imageListDelete = useCallback((id: number) => {
+  const imageListDelete = useCallback((id: string) => {
     setImageList(imageList => imageList.filter(item => item.id !== id));
     if (selectedImage === id) {
       resetCanvas(0, 0);

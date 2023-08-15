@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { IImageListData, useCanvasContext } from './CanvasContext';
 import './ImageList.css';
-import { ImageBytes } from './Utilities';
+import { ImageBytes, useExportImageTypeSelector } from './Utilities';
 import { saveZipAs } from '../zip-stream';
 import jsPDF from 'jspdf';
+import { constructImageExportName, imageDataToBlob } from '../utils';
 
 const PREVIEW_CANVAS_WIDTH = 120;
 const PREVIEW_CANVAS_HEIGHT = Math.floor(PREVIEW_CANVAS_WIDTH * Math.SQRT2);
@@ -23,7 +24,7 @@ function drawImageToFit(ctx: CanvasRenderingContext2D, data: ImageData) {
   }
 }
 
-const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageListData, onSelect: (id: number) => void, onAction: (id: number, n: number) => void }) => {
+const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageListData, onSelect: (id: string) => void, onAction: (id: string, n: number) => void }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -60,10 +61,11 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
 
 export default function ImageList() {
   const { imageList, imageListSelect, imageListMove, imageListDelete, imageListDeleteAll } = useCanvasContext();
+  const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
   const listRef = useRef<HTMLDivElement>(null);
   const countRef = useRef(0);
 
-  const onSelect = useCallback((id: number) => {
+  const onSelect = useCallback((id: string) => {
     imageListSelect(id);
   }, [imageListSelect]);
 
@@ -72,49 +74,48 @@ export default function ImageList() {
       alert("Fail, some images have unknown DPI.");
       return;
     }
+    if (type !== 'image/jpeg' && !window.confirm("Exporting big images as PDF using a format other than JPG can take a long time, cause the browser window to freeze/crash and create very big PDF files. Continue?")) {
+      return;
+    }
     const doc = new jsPDF({
       unit: 'in',
     });
     doc.deletePage(1);
+
+    (async () => {
+      for (const item of imageList) {
+        const buf = await imageDataToBlob(item.data, type, quality / 100).then(blob => blob.arrayBuffer());
+        const orientation = item.data.height >= item.data.width ? 'p' : 'l';
+        doc.addPage([item.data.width / item.dpi!, item.data.height / item.dpi!], orientation);
+        doc.addImage(new Uint8Array(buf), 0, 0, item.data.width / item.dpi!, item.data.height / item.dpi!, undefined, 'NONE');
+      }
+    })().then(() => {
+      doc.save(constructImageExportName(type, quality, null, null, '.pdf'));
+    });
+    /*
     imageList.forEach(item => {
       const orientation = item.data.height >= item.data.width ? 'p' : 'l';
       doc.addPage([item.data.width / item.dpi!, item.data.height / item.dpi!], orientation);
       doc.addImage(item.data, 0, 0, item.data.width / item.dpi!, item.data.height / item.dpi!);
     });
     doc.save('scan.pdf');
-  }, [imageList]);
+    */
+  }, [imageList, type, quality]);
 
   const onExportAsZIP = useCallback(() => {
-    const jobs = imageList.map(item => () => new Promise<ReadableStream<Uint8Array>>((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = item.data.width;
-      canvas.height = item.data.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.putImageData(item.data, 0, 0);
-      }
-      canvas.toBlob(blob => {
-        if (blob) {
-          resolve(blob.stream());
-        } else {
-          reject();
-        }
-      }, 'image/jpeg', 0.95);
-    }));
-
     let i = 0;
-    const gen = jobs.values();
-    saveZipAs('scan.zip', () => {
-      const iter = gen.next();
-      return iter.done ? null : iter.value().then(stream => ({
-        name: `scan-${i++}.jpg`,
-        lastModified: new Date(2002),
-        stream: () => stream,
+    const gen = imageList.values();
+    saveZipAs(constructImageExportName(type, quality, null, null, '.zip'), () => {
+      const { value, done } = gen.next();
+      return done ? null : imageDataToBlob(value.data, type, quality / 100).then(blob => ({
+        name: constructImageExportName(type, quality, value.date, (i++).toString().padStart(5, '0')),
+        lastModified: value.date,
+        stream: blob.stream.bind(blob),
       }));
     });
-  }, [imageList]);
+  }, [imageList, type, quality]);
 
-  const onAction = useCallback((id: number, n: number) => {
+  const onAction = useCallback((id: string, n: number) => {
     if (n) {
       imageListMove(id, n);
     } else if (window.confirm("Delete image permanently?")) {
@@ -142,6 +143,10 @@ export default function ImageList() {
       </div>
       <div className="ImageList-Controls">
         <button onClick={onDeleteAll} title="Delete all images.">Delete ALL Images</button>
+        {' '}
+        {elFormatSelector}
+        {' '}
+        {elQualitySelector}
         {' '}
         <button onClick={onExportAsPDF} title="Export as PDF, large files can cause the browser window to freeze.">Export as PDF</button>
         {' '}

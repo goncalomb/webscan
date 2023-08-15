@@ -1,5 +1,6 @@
 import bytes from "bytes";
 import { ChangeEvent, useCallback, useMemo, useState } from "react";
+import { CANVAS_SERIALIZATION_TYPES, CANVAS_SERIALIZATION_TYPE_BY_NAME, CANVAS_SERIALIZATION_TYPE_DEFAULT } from "../utils";
 
 export function ImageBytes({ value }: { value: number | ImageData }) {
   const b = value instanceof ImageData ? value.data.byteLength : value;
@@ -8,36 +9,35 @@ export function ImageBytes({ value }: { value: number | ImageData }) {
 }
 
 export function useExportImageTypeSelector() {
-  const [format, setFormat] = useState('image/jpeg');
+  const [type, setType] = useState(CANVAS_SERIALIZATION_TYPE_DEFAULT.name);
   const [quality, setQuality] = useState(95);
 
-  const onChangeFormat = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
-    setFormat(e.target.value);
-  }, [setFormat]);
+  const onChangeType = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+    setType(e.target.value);
+  }, [setType]);
 
   const onChangeQuality = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setQuality(Math.min(100, Math.max(0, Number(e.target.value))));
   }, [setQuality]);
 
   const elFormatSelector = useMemo(() => (
-    <select title="Export Image Format." value={format} onChange={onChangeFormat} >
-      <option value="image/jpeg">JPEG</option>
-      <option value="image/png">PNG</option>
+    <select title="Export image format." value={type} onChange={onChangeType}>
+      {CANVAS_SERIALIZATION_TYPES.map(f => <option key={f.name} value={f.name}>{f.ext.substring(1).toUpperCase()}</option>)}
     </select>
-  ), [format, onChangeFormat]);
+  ), [type, onChangeType]);
 
   const elQualitySelector = useMemo(() => (
     <input
       type="number"
-      title="Export Image Quality (%). JPEG only."
+      title="Export image quality (%)."
       min={0}
       max={100}
       maxLength={5}
       value={quality}
-      disabled={format !== 'image/jpeg'}
+      disabled={CANVAS_SERIALIZATION_TYPE_BY_NAME[type].lossless}
       onChange={onChangeQuality}
     />
-  ), [format, quality, onChangeQuality]);
+  ), [type, quality, onChangeQuality]);
 
-  return { format, quality, elFormatSelector, elQualitySelector };
+  return { type, quality, elFormatSelector, elQualitySelector };
 }

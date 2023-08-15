@@ -6,7 +6,7 @@ import { useExportImageTypeSelector } from './Utilities';
 export default function Canvas() {
   const { canvasRef, notInitialized, exportDownload, exportPhotopea } = useCanvasContext();
   const [scaled, setScaled] = useState(true);
-  const { format, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
+  const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
 
   const onClickCanvas = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     if (scaled) {
@@ -33,9 +33,9 @@ export default function Canvas() {
         {' '}
         {elQualitySelector}
         {' '}
-        <button onClick={e => exportDownload(format, quality / 100)}>Download</button>
+        <button onClick={e => exportDownload(type, quality)}>Download</button>
         {' '}
-        <button onClick={e => exportPhotopea(format, quality / 100)}>Send to Photopea</button>
+        <button onClick={e => exportPhotopea(type, quality)}>Send to Photopea</button>
       </fieldset>
     </div>
   );

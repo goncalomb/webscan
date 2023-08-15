@@ -225,6 +225,11 @@ function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGr
 }
 
 /**
+ * Memoized version of OptionGroup.
+ */
+const OptionGroupMemo = React.memo(OptionGroup);
+
+/**
  * Option selector that contains all options and option groups.
  */
 export default function OptionsSelector() {
@@ -262,7 +267,7 @@ export default function OptionsSelector() {
         </label>
       ) : null}
       {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? (
-        <OptionGroup
+        <OptionGroupMemo
           key={g.title}
           group={g}
           showAdvanced={showAdvanced}

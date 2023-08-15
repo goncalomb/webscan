@@ -1,6 +1,20 @@
 import bytes from "bytes";
-import { ChangeEvent, useCallback, useMemo, useState } from "react";
+import { ChangeEvent, DependencyList, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CANVAS_SERIALIZATION_TYPES, CANVAS_SERIALIZATION_TYPE_BY_NAME, CANVAS_SERIALIZATION_TYPE_DEFAULT } from "../utils";
+
+// A move to useReducer might be in order, but I believe that using a stable
+// callback is also a good solution.
+// https://legacy.reactjs.org/docs/hooks-faq.html#how-to-read-an-often-changing-value-from-usecallback
+// https://github.com/facebook/react/issues/14099
+export function useStableCallback<T extends Function>(callback: T, deps: DependencyList): T {
+  const ref = useRef<T>();
+  useLayoutEffect(() => {
+    ref.current = callback;
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  return useCallback(function (this: any) {
+    return ref.current?.apply(this, arguments);
+  }, []) as unknown as T;
+}
 
 export function ImageBytes({ value }: { value: number | ImageData }) {
   const b = value instanceof ImageData ? value.data.byteLength : value;

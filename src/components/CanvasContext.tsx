@@ -1,6 +1,7 @@
 import React, { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { SANEOptionArray, saneWellKnownOptGetDPI } from '../libsane';
 import { constructImageExportName, isNavigatorSupported } from '../utils';
+import { useStableCallback } from './Utilities';
 
 class PhotopeaWindowManager {
 
@@ -158,7 +159,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     setSelectedImage(id);
   }, [setImageList, setSelectedImage]);
 
-  const imageListSelect = useCallback((id: string) => {
+  const imageListSelect = useStableCallback((id: string) => {
     const item = imageList.find(item => item.id === id);
     if (ctxRef.current && item) {
       resetCanvas(item.data.width, item.data.height);
@@ -178,7 +179,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     });
   }, [setImageList]);
 
-  const imageListDelete = useCallback((id: string) => {
+  const imageListDelete = useStableCallback((id: string) => {
     setImageList(imageList => imageList.filter(item => item.id !== id));
     if (selectedImage === id) {
       resetCanvas(0, 0);

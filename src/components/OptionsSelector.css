@@ -1,8 +1,8 @@
-.OptionsSelector>h3 {
+.OptionsSelector h3 {
   margin: .7em 0;
 }
 
-.OptionsSelector>p {
+.OptionsSelector p {
   margin: .5em 0;
 }
 
@@ -10,14 +10,26 @@
   vertical-align: middle;
 }
 
-.OptionsSelector label input[type="text"],
-.OptionsSelector label input[type="number"],
-.OptionsSelector label select,
-.OptionsSelector label button {
-  min-width: 70%;
-  max-width: 100%;
+.OptionsSelector input[type="checkbox"] {
+  margin: 0;
 }
 
-.OptionsSelector label input[type="checkbox"] {
-  margin-left: 0;
+.OptionsSelector-Basic {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.OptionsSelector-Basic label input[type="text"],
+.OptionsSelector-Basic label input[type="number"],
+.OptionsSelector-Basic label select,
+.OptionsSelector-Basic label button {
+  width: 100%;
+}
+
+.OptionsSelector-All label input[type="text"],
+.OptionsSelector-All label input[type="number"],
+.OptionsSelector-All label select,
+.OptionsSelector-All label button {
+  min-width: 70%;
+  max-width: 100%;
 }

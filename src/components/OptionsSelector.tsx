@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useCallback, useMemo, useState } from 'react';
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import './OptionsSelector.css';
 import { useSANEContext } from '../SANEContext';
 import { SANEConstraintType, SANEOptionDescriptor, SANEValueType, SANEUnit } from '../libsane';
@@ -20,7 +20,13 @@ interface IOptionInputProps {
   descriptor: SANEOptionDescriptor;
   value: any;
   setValue: (value: any) => void;
+  noLabel: boolean;
 }
+
+const SANE_WELL_KNOWN_OPTIONS = [
+  'mode',
+  'resolution'
+];
 
 // map each unit to readable text
 const unitString = {
@@ -64,7 +70,7 @@ function OptionLabel({ descriptor, noTitle = false }: { descriptor: SANEOptionDe
 /**
  * Option input for text and number options.
  */
-function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
+function OptionInputText({ descriptor, value, setValue, noLabel }: IOptionInputProps) {
   const [localValue, setLocalValue] = useState('');
 
   const onChange = useCallback((e: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -89,14 +95,14 @@ function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
 
   return descriptor.constraint_type === SANEConstraintType.WORD_LIST || descriptor.constraint_type === SANEConstraintType.STRING_LIST ? (
     <label>
-      <OptionLabel descriptor={descriptor} /><br />
+      {noLabel ? null : <><OptionLabel descriptor={descriptor} /><br /></>}
       <select value={value} onChange={onChange}>
         {descriptor.constraint.map((value: any) => <option key={value} value={value}>{value}</option>)}
       </select>
     </label>
   ) : (
     <label>
-      <OptionLabel descriptor={descriptor} /><br />
+      {noLabel ? null : <><OptionLabel descriptor={descriptor} /><br /></>}
       {descriptor.type === SANEValueType.STRING ? (
         <input type="text" maxLength={descriptor.size} value={value} onChange={onChange} />
       ) : (descriptor.constraint_type === SANEConstraintType.RANGE ? (
@@ -126,10 +132,11 @@ function OptionInputText({ descriptor, value, setValue }: IOptionInputProps) {
 /**
  * Option input for boolean options.
  */
-function OptionInputBoolean({ descriptor, value, setValue }: IOptionInputProps) {
+function OptionInputBoolean({ descriptor, value, setValue, noLabel }: IOptionInputProps) {
   return (
     <label>
-      <input type="checkbox" checked={value} onChange={e => setValue(e.target.checked)} /> <OptionLabel descriptor={descriptor} />
+      <input type="checkbox" checked={value} onChange={e => setValue(e.target.checked)} />
+      {noLabel ? null : <> <OptionLabel descriptor={descriptor} /></>}
     </label>
   );
 }
@@ -137,10 +144,11 @@ function OptionInputBoolean({ descriptor, value, setValue }: IOptionInputProps) 
 /**
  * Option input for button options.
  */
-function OptionInputButton({ descriptor, setValue }: IOptionInputProps) {
+function OptionInputButton({ descriptor, setValue, noLabel }: IOptionInputProps) {
   return (
     <label>
-      <button onClick={e => setValue(null)}>{descriptor.title}</button> <OptionLabel descriptor={descriptor} noTitle />
+      <button onClick={e => setValue(null)}>{descriptor.title}</button>
+      {noLabel ? null : <> <OptionLabel descriptor={descriptor} noTitle /></>}
     </label>
   );
 }
@@ -158,7 +166,7 @@ const typeElements = {
 /**
  * Individual option.
  */
-function Option({ pos, descriptor, value, setOptionValue }: IOption & { setOptionValue: (option: number, value: any) => void }) {
+function Option({ pos, descriptor, value, setOptionValue, noLabel = false, noAuto = false}: IOption & { setOptionValue: (option: number, value: any) => void, noLabel?: boolean, noAuto?: boolean }) {
   const setValue = useCallback((value?: any) => {
     setOptionValue(pos, value);
   }, [pos, setOptionValue]);
@@ -172,28 +180,30 @@ function Option({ pos, descriptor, value, setOptionValue }: IOption & { setOptio
     //       this case we might even create a special widget, other frontends
     //       also do this
     return (
-      <p>
-        <span>[ <abbr title="This type of option is not supported at the moment.">Unsupported</abbr> ]</span> <OptionLabel descriptor={descriptor} />
-      </p>
+      <label>
+        <span>[ <abbr title="This type of option is not supported at the moment.">Unsupported</abbr> ]</span>
+        {noLabel ? null : <> <OptionLabel descriptor={descriptor} /></>}
+      </label>
     );
   }
   // read-write option
   if (descriptor.cap.SOFT_SELECT) {
     return (
-      <p>
-        {typeElements[descriptor.type]({ descriptor, value, setValue })}
-        {descriptor.cap.AUTOMATIC ? (
+      <>
+        {typeElements[descriptor.type]({ descriptor, value, setValue, noLabel })}
+        {descriptor.cap.AUTOMATIC && !noAuto ? (
           <> <button title="Automatic, let the device choose the value." onClick={e => setValue(/* undefined means auto */)}>AUTO</button></>
         ) : null}
-      </p>
+      </>
     );
   }
   // read-only option
   if (descriptor.cap.SOFT_DETECT) {
     return (
-      <p>
-        <span>[ {value === true ? "YES" : (value === false ? "NO" : value)} ]</span> <OptionLabel descriptor={descriptor} />
-      </p>
+      <label>
+        <span>[ {value === true ? "YES" : (value === false ? "NO" : value)} ]</span>
+        {noLabel ? null : <> <OptionLabel descriptor={descriptor} /></>}
+      </label>
     );
   }
   throw new Error("Invalid option"); // should never happen
@@ -214,11 +224,13 @@ function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGr
         {group.title}
       </h3>
       {group.options.map(o => !o.descriptor.cap.INACTIVE && (!o.descriptor.cap.ADVANCED || showAdvanced) ? (
-        <OptionMemo
-          key={o.descriptor.name}
-          setOptionValue={setOptionValue}
-          {...o}
-        />
+        <p>
+          <OptionMemo
+            key={o.descriptor.name}
+            setOptionValue={setOptionValue}
+            {...o}
+          />
+        </p>
       ) : null)}
     </>
   );
@@ -232,9 +244,8 @@ const OptionGroupMemo = React.memo(OptionGroup);
 /**
  * Option selector that contains all options and option groups.
  */
-export default function OptionsSelector() {
-  const { lib, busy, options, scanning, setOptionValue } = useSANEContext();
-  const [showAdvanced, setShowAdvanced] = useState(false);
+export function OptionsSelectorAll({showAdvanced}: {showAdvanced:boolean}) {
+  const { lib, options, setOptionValue } = useSANEContext();
 
   // deconstruct options and group them
   const optionsByGroup = useMemo(() => {
@@ -260,12 +271,7 @@ export default function OptionsSelector() {
   }, [lib, options]);
 
   return (
-    <fieldset className="OptionsSelector" disabled={busy || scanning}>
-      {options.length ? (
-        <label style={{ float: "right" }}>
-          <input type="checkbox" defaultChecked={showAdvanced} onChange={e => setShowAdvanced(e.target.checked)} /> Show Advanced
-        </label>
-      ) : null}
+    <div className="OptionsSelector-All">
       {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? (
         <OptionGroupMemo
           key={g.title}
@@ -274,6 +280,76 @@ export default function OptionsSelector() {
           setOptionValue={setOptionValue}
         />
       ) : null)}
-    </fieldset>
+    </div>
   );
+}
+
+/**
+ * Option selector that contains basic options.
+ */
+export function OptionsSelectorBasic() {
+  const { lib, options, setOptionValue } = useSANEContext();
+
+  // process options
+  const { wellKnown } = useMemo(() => {
+    const result: { wellKnown: IOption[] } = { wellKnown: [] };
+    for (let i = 1; i < options.length; i++) { // option 0 is always "number of options", don't need that
+      const opt = options[i];
+      if (!opt.descriptor.cap.INACTIVE && SANE_WELL_KNOWN_OPTIONS.includes(opt.descriptor.name)) {
+        result.wellKnown.push({ ...opt, pos: i });
+      }
+    }
+    return result;
+  }, [lib, options]);
+
+  return (
+    <table className="OptionsSelector-Basic">
+      {wellKnown.map(o => (
+        <tr key={o.descriptor.name}>
+          <td>
+            {`${o.descriptor.title}`}{o.descriptor.unit !== SANEUnit.NONE ? ` [${unitString[o.descriptor.unit]}]: ` : ': '}
+          </td>
+          <td>
+            <OptionMemo
+              setOptionValue={setOptionValue}
+              noLabel
+              noAuto
+              {...o}
+            />
+          </td>
+        </tr>
+      ))}
+    </table>
+  );
+}
+
+export default function OptionsSelector() {
+  const { lib, busy, options, scanning, setOptionValue } = useSANEContext();
+  const [showAll, setShowAll] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    if (!options.length) {
+      setShowAll(false);
+    }
+  }, [options]);
+
+  return options.length ? (
+    <fieldset className="OptionsSelector" disabled={busy || scanning}>
+      <p>
+        {showAll ? (
+          <>
+            <button onClick={e => setShowAll(false)}>Show Basic Options</button>
+            {' '}
+            <label>
+              <input type="checkbox" defaultChecked={showAdvanced} onChange={e => setShowAdvanced(e.target.checked)} /> <small>Advanced</small>
+            </label>
+          </>
+        ) : (
+          <button onClick={e => setShowAll(true)}>Show All Options</button>
+        )}
+      </p>
+      {showAll ? <OptionsSelectorAll showAdvanced={showAdvanced} /> : <OptionsSelectorBasic />}
+    </fieldset>
+  ) : null;
 }

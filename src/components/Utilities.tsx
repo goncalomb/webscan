@@ -1,6 +1,15 @@
 import bytes from "bytes";
-import { ChangeEvent, DependencyList, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DependencyList, EffectCallback, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CANVAS_SERIALIZATION_TYPES, CANVAS_SERIALIZATION_TYPE_BY_NAME, CANVAS_SERIALIZATION_TYPE_DEFAULT } from "../utils";
+
+export function useDebouncedEffect(effect: EffectCallback, deps?: DependencyList, delay = 500) {
+  useEffect(() => {
+    const t = setTimeout(effect, delay);
+    return () => {
+      clearTimeout(t);
+    };
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+}
 
 // A move to useReducer might be in order, but I believe that using a stable
 // callback is also a good solution.

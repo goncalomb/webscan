@@ -1,13 +1,19 @@
 import React, { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import './OptionsSelector.css';
 import { useSANEContext } from '../SANEContext';
-import { SANEConstraintType, SANEOptionDescriptor, SANEValueType, SANEUnit } from '../libsane';
+import { SANEConstraintType, SANEOptionDescriptor, SANEUnit, SANEValueType } from '../libsane';
+import './OptionsSelector.css';
+import PaperSizeSelector, { usePaperSizeSelector } from './PaperSizeSelector';
+
+enum IOptionGroupSpecial {
+  GEOMETRY,
+}
 
 interface IOptionGroup {
   title: string;
   inactive: boolean;
   advanced: boolean;
   options: IOption[];
+  special: IOptionGroupSpecial | null;
 }
 
 interface IOption {
@@ -25,7 +31,11 @@ interface IOptionInputProps {
 
 const SANE_WELL_KNOWN_OPTIONS = [
   'mode',
-  'resolution'
+  'resolution',
+];
+
+const SANE_WELL_KNOWN_AREA_OPTIONS = [
+  'tl-x', 'tl-y', 'br-x', 'br-y',
 ];
 
 // map each unit to readable text
@@ -166,7 +176,7 @@ const typeElements = {
 /**
  * Individual option.
  */
-function Option({ pos, descriptor, value, setOptionValue, noLabel = false, noAuto = false}: IOption & { setOptionValue: (option: number, value: any) => void, noLabel?: boolean, noAuto?: boolean }) {
+function Option({ pos, descriptor, value, setOptionValue, noLabel = false, noAuto = false }: IOption & { setOptionValue: (option: number, value: any) => void, noLabel?: boolean, noAuto?: boolean }) {
   const setValue = useCallback((value?: any) => {
     setOptionValue(pos, value);
   }, [pos, setOptionValue]);
@@ -215,6 +225,21 @@ function Option({ pos, descriptor, value, setOptionValue, noLabel = false, noAut
 const OptionMemo = React.memo(Option);
 
 /**
+ * Special option for geometry group.
+ */
+function OptionSpecialPaperSize() {
+  const propsPaperSizeSelector = usePaperSizeSelector();
+  return (
+    <p>
+      <label>
+        <small>Paper size presets</small><br />
+        <PaperSizeSelector {...propsPaperSizeSelector} />
+      </label>
+    </p>
+  );
+}
+
+/**
  * Option group that contains a set of options.
  */
 function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGroup, showAdvanced: boolean, setOptionValue: (option: number, value: any) => void }) {
@@ -224,14 +249,14 @@ function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGr
         {group.title}
       </h3>
       {group.options.map(o => !o.descriptor.cap.INACTIVE && (!o.descriptor.cap.ADVANCED || showAdvanced) ? (
-        <p>
+        <p key={o.descriptor.name}>
           <OptionMemo
-            key={o.descriptor.name}
             setOptionValue={setOptionValue}
             {...o}
           />
         </p>
       ) : null)}
+      {group.special === IOptionGroupSpecial.GEOMETRY ? <OptionSpecialPaperSize /> : null}
     </>
   );
 }
@@ -244,12 +269,12 @@ const OptionGroupMemo = React.memo(OptionGroup);
 /**
  * Option selector that contains all options and option groups.
  */
-export function OptionsSelectorAll({showAdvanced}: {showAdvanced:boolean}) {
+export function OptionsSelectorAll({ showAdvanced }: { showAdvanced: boolean }) {
   const { lib, options, setOptionValue } = useSANEContext();
 
   // deconstruct options and group them
   const optionsByGroup = useMemo(() => {
-    let group: IOptionGroup = { title: "General", inactive: true, advanced: true, options: [] };
+    let group: IOptionGroup = { title: "General", inactive: true, advanced: true, options: [], special: null };
     const result: IOptionGroup[] = [];
     for (let i = 1; i < options.length; i++) { // option 0 is always "number of options", don't need that
       const opt = options[i];
@@ -257,7 +282,7 @@ export function OptionsSelectorAll({showAdvanced}: {showAdvanced:boolean}) {
         if (group.options.length) {
           result.push(group);
         }
-        group = { title: opt.descriptor.title, inactive: true, advanced: true, options: [] };
+        group = { title: opt.descriptor.title, inactive: true, advanced: true, options: [], special: null };
       } else {
         group.inactive &&= opt.descriptor.cap.INACTIVE;
         group.advanced &&= opt.descriptor.cap.ADVANCED;
@@ -267,6 +292,11 @@ export function OptionsSelectorAll({showAdvanced}: {showAdvanced:boolean}) {
     if (group.options.length) {
       result.push(group);
     }
+    result.forEach(g => {
+      if (SANE_WELL_KNOWN_AREA_OPTIONS.every(n => g.options.find(v => v.descriptor.name === n))) {
+        g.special = IOptionGroupSpecial.GEOMETRY;
+      }
+    });
     return result;
   }, [lib, options]);
 
@@ -288,7 +318,7 @@ export function OptionsSelectorAll({showAdvanced}: {showAdvanced:boolean}) {
  * Option selector that contains basic options.
  */
 export function OptionsSelectorBasic() {
-  const { lib, options, setOptionValue } = useSANEContext();
+  const { options, setOptionValue } = useSANEContext();
 
   // process options
   const { wellKnown } = useMemo(() => {
@@ -300,31 +330,45 @@ export function OptionsSelectorBasic() {
       }
     }
     return result;
-  }, [lib, options]);
+  }, [options]);
+
+  const propsPaperSizeSelector = usePaperSizeSelector();
 
   return (
     <table className="OptionsSelector-Basic">
-      {wellKnown.map(o => (
-        <tr key={o.descriptor.name}>
-          <td>
-            {`${o.descriptor.title}`}{o.descriptor.unit !== SANEUnit.NONE ? ` [${unitString[o.descriptor.unit]}]: ` : ': '}
-          </td>
-          <td>
-            <OptionMemo
-              setOptionValue={setOptionValue}
-              noLabel
-              noAuto
-              {...o}
-            />
-          </td>
-        </tr>
-      ))}
+      <tbody>
+        {wellKnown.map(o => (
+          <tr key={o.descriptor.name}>
+            <td>
+              {`${o.descriptor.title}`}{o.descriptor.unit !== SANEUnit.NONE ? ` [${unitString[o.descriptor.unit]}]: ` : ': '}
+            </td>
+            <td>
+              <OptionMemo
+                setOptionValue={setOptionValue}
+                noLabel
+                noAuto
+                {...o}
+              />
+            </td>
+          </tr>
+        ))}
+        {propsPaperSizeSelector.paperSizes.length ? (
+          <tr>
+            <td>Scan size:</td>
+            <td>
+              <label>
+                <PaperSizeSelector {...propsPaperSizeSelector} />
+              </label>
+            </td>
+          </tr>
+        ) : null}
+      </tbody>
     </table>
   );
 }
 
 export default function OptionsSelector() {
-  const { lib, busy, options, scanning, setOptionValue } = useSANEContext();
+  const { busy, options, scanning } = useSANEContext();
   const [showAll, setShowAll] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 

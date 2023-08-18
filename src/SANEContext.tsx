@@ -14,7 +14,7 @@ interface ISANEContext {
   getDevices: (usbRequest?: boolean, usbRequestFiltered?: boolean) => Promise<void>;
   openDevice: (name: string) => void;
   closeDevice: () => void;
-  setOptionValue: (option: number, value?: any) => void;
+  setOptionValue: (option: number, value?: any) => Promise<void>;
   startScan: (scanner: SANEImageScanner) => Promise<{ options: SANEOptionArray, parameters: SANEParameters, promise: Promise<void>, cancel: () => void } | null>;
 }
 

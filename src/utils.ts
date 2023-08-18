@@ -16,6 +16,56 @@ export const CANVAS_SERIALIZATION_TYPE_BY_NAME = CANVAS_SERIALIZATION_TYPES.redu
 }, {} as { [key: string]: typeof CANVAS_SERIALIZATION_TYPES[0] });
 export const CANVAS_SERIALIZATION_TYPE_DEFAULT = CANVAS_SERIALIZATION_TYPES.find(t => t.name === 'image/jpeg') || CANVAS_SERIALIZATION_TYPE_PNG;
 
+/**
+ * ISO A paper sizes.
+ */
+export const PAPER_SIZES_A: { name: string, w: number, h: number, unit: 'mm' }[] = Array.from(Array(11).keys()).map(i => ({
+  name: `A${i}`,
+  w: Math.round(Math.sqrt(Math.SQRT2 / (2 ** (i + 1))) * 1000),
+  h: Math.round(Math.sqrt(Math.SQRT2 / (2 ** i)) * 1000),
+  unit: 'mm',
+}));
+
+/**
+ * US paper sizes.
+ */
+export const PAPER_SIZES_US: { name: string, w: number, h: number, unit: 'in' }[] = [
+  { name: 'US Letter', w: 8.5, h: 11, unit: 'in' },
+  { name: 'US Legal', w: 8.5, h: 14, unit: 'in' },
+  { name: 'US Tabloid', w: 11, h: 17, unit: 'in' },
+];
+
+/**
+ * All paper sizes.
+ */
+export const PAPER_SIZES_ALL: { name: string, w: number, h: number, unit: 'mm' | 'in' }[] = [
+  ...PAPER_SIZES_A,
+  ...PAPER_SIZES_US,
+];
+
+/**
+ * All paper sizes sorted by area.
+ */
+export const PAPER_SIZES_ALL_SORTED = [...PAPER_SIZES_ALL].sort((a, b) => {
+  const aArea = a.unit === 'in' ? in2mm(a.w) * in2mm(a.h) : a.w * a.h;
+  const bArea = b.unit === 'in' ? in2mm(b.w) * in2mm(b.h) : b.w * b.h;
+  return bArea - aArea;
+});
+
+/**
+ * Convert inches to millimeters.
+ */
+export function in2mm(inches: number) {
+  return inches * 127 / 5;
+}
+
+/**
+ * Convert millimeters to inches.
+ */
+export function mm2in(millimeters: number) {
+  return millimeters * 5 / 127;
+}
+
 export function isNavigatorSupported() {
   if (navigatorSupported === undefined) {
     navigatorSupported = !!window.navigator.usb;

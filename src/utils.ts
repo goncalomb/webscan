@@ -1,6 +1,11 @@
-let navigatorSupported: boolean;
+/**
+ * Canvas serialization type image/png that browsers must always support.
+ */
+export const CANVAS_SERIALIZATION_TYPE_PNG = { name: 'image/png', ext: '.png', lossless: true };
 
-export const CANVAS_SERIALIZATION_TYPE_PNG = { name: 'image/png', ext: '.png', lossless: true }; // browsers must always support 'image/png'
+/**
+ * All supported canvas serialization types.
+ */
 export const CANVAS_SERIALIZATION_TYPES = (() => {
   const c = document.createElement('canvas');
   c.width = c.height = 1;
@@ -10,10 +15,18 @@ export const CANVAS_SERIALIZATION_TYPES = (() => {
     { name: 'image/webp', ext: '.webp', lossless: false },
   ].filter(t => c.toDataURL(t.name).startsWith(`data:${t.name};`));
 })();
+
+/**
+ * All supported canvas serialization types by name.
+ */
 export const CANVAS_SERIALIZATION_TYPE_BY_NAME = CANVAS_SERIALIZATION_TYPES.reduce((o, t) => {
   o[t.name] = t;
   return o;
 }, {} as { [key: string]: typeof CANVAS_SERIALIZATION_TYPES[0] });
+
+/**
+ * Default canvas serialization type (image/jpeg if supported else image/png).
+ */
 export const CANVAS_SERIALIZATION_TYPE_DEFAULT = CANVAS_SERIALIZATION_TYPES.find(t => t.name === 'image/jpeg') || CANVAS_SERIALIZATION_TYPE_PNG;
 
 /**
@@ -66,13 +79,16 @@ export function mm2in(millimeters: number) {
   return millimeters * 5 / 127;
 }
 
+/**
+ * Check if browser supports required technologies (USB only for now).
+ */
 export function isNavigatorSupported() {
-  if (navigatorSupported === undefined) {
-    navigatorSupported = !!window.navigator.usb;
-  }
-  return navigatorSupported;
+  return !!window.navigator.usb;
 };
 
+/**
+ * USB request devices with default filter for printers/scanners.
+ */
 export function usbRequestDevices(filters = false) {
   return navigator.usb.requestDevice({
     filters: filters ? [
@@ -81,21 +97,43 @@ export function usbRequestDevices(filters = false) {
   });
 }
 
+/**
+ * USB add listener (connect/disconnect).
+ */
 export function usbAddListener(handler: Parameters<USB['addEventListener']>[1]) {
   navigator.usb.addEventListener('connect', handler);
   navigator.usb.addEventListener('disconnect', handler);
 }
 
-export function usbRemoveListener(handler: Parameters<USB['addEventListener']>[1]) {
+/**
+ * USB remove listener (connect/disconnect).
+ */
+export function usbRemoveListener(handler: Parameters<USB['removeEventListener']>[1]) {
   navigator.usb.removeEventListener('connect', handler);
   navigator.usb.removeEventListener('disconnect', handler);
 }
 
+/**
+ * Utility to construct filename for exported images and container formats.
+ * @param type canvas serialization type
+ * @param quality canvas serialization quality
+ * @param date file date
+ * @param extra extra text before date
+ * @param containerExt container extension if exporting a container format
+ * @returns constructed name
+ */
 export function constructImageExportName(type: string, quality: number, date?: Date | null, extra?: string | null, containerExt?: '.zip' | '.pdf') {
   const { ext, lossless } = CANVAS_SERIALIZATION_TYPE_BY_NAME[type];
   return `webscan${extra ? `-${extra}` : ''}-${date ? date.getTime() : Date.now()}${containerExt ? `-${ext.substring(1)}` : ''}${lossless ? '' : `-${quality}`}${containerExt || ext}`;
 }
 
+/**
+ * Utility to convert raw image data to a specific image type using a canvas.
+ * @param data image data
+ * @param type canvas serialization type
+ * @param quality canvas serialization quality
+ * @returns blob promise
+ */
 export function imageDataToBlob(data: ImageData, type?: string, quality?: any) {
   return new Promise<Blob>((resolve, reject) => {
     const canvas = document.createElement('canvas');

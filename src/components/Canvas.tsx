@@ -1,4 +1,5 @@
 import { MouseEvent, useCallback, useState } from 'react';
+import { CANVAS_SERIALIZATION_TYPE_PNG } from '../utils';
 import './Canvas.css';
 import { useCanvasContext } from './CanvasContext';
 import { useExportImageTypeSelector } from './Utilities';
@@ -6,7 +7,7 @@ import { useExportImageTypeSelector } from './Utilities';
 export default function Canvas() {
   const { canvasRef, notInitialized, exportDownload, exportPhotopea } = useCanvasContext();
   const [scaled, setScaled] = useState(true);
-  const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
+  const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector(CANVAS_SERIALIZATION_TYPE_PNG.name);
 
   const onClickCanvas = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     if (scaled) {

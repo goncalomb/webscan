@@ -31,8 +31,8 @@ export function ImageBytes({ value }: { value: number | ImageData }) {
   return <abbr title={`${bs}, ${b} bytes, RGBA 8-bit uncompressed.`}>{bs}</abbr>;
 }
 
-export function useExportImageTypeSelector() {
-  const [type, setType] = useState(CANVAS_SERIALIZATION_TYPE_DEFAULT.name);
+export function useExportImageTypeSelector(defaultType = CANVAS_SERIALIZATION_TYPE_DEFAULT.name) {
+  const [type, setType] = useState(defaultType);
   const [quality, setQuality] = useState(95);
 
   const onChangeType = useCallback((e: ChangeEvent<HTMLSelectElement>) => {

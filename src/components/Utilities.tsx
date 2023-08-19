@@ -56,7 +56,7 @@ export function useExportImageTypeSelector(defaultType = CANVAS_SERIALIZATION_TY
       min={0}
       max={100}
       maxLength={5}
-      value={quality}
+      value={CANVAS_SERIALIZATION_TYPE_BY_NAME[type].lossless ? "100" : quality}
       disabled={CANVAS_SERIALIZATION_TYPE_BY_NAME[type].lossless}
       onChange={onChangeQuality}
     />

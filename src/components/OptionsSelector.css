@@ -26,6 +26,42 @@
   width: 100%;
 }
 
+.OptionsSelector-All .react-tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 0;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-size: .9em;
+}
+
+.OptionsSelector-All .react-tabs ul::after {
+  content: "";
+  flex: 9 0 auto;
+}
+
+.OptionsSelector-All .react-tabs ul li {
+  display: initial;
+  flex: 1 0 auto;
+  cursor: pointer;
+  padding: .4em .5em;
+}
+
+.OptionsSelector-All .react-tabs ul li[aria-selected="true"] {
+  border: 1px solid #333;
+  border-bottom: none;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  text-decoration: underline;
+}
+
+.OptionsSelector-All .react-tabs ul::after,
+.OptionsSelector-All .react-tabs ul li[aria-selected="false"] {
+  border: 1px solid transparent;
+  border-bottom: 1px solid #333;
+}
+
 .OptionsSelector-All label input[type="text"],
 .OptionsSelector-All label input[type="number"],
 .OptionsSelector-All label select,

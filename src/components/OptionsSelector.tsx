@@ -1,4 +1,5 @@
 import React, { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import { useSANEContext } from '../SANEContext';
 import { SANEConstraintType, SANEOptionDescriptor, SANEUnit, SANEValueType } from '../libsane';
 import './OptionsSelector.css';
@@ -245,9 +246,6 @@ function OptionSpecialPaperSize() {
 function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGroup, showAdvanced: boolean, setOptionValue: (option: number, value: any) => void }) {
   return (
     <>
-      <h3>
-        {group.title}
-      </h3>
       {group.options.map(o => !o.descriptor.cap.INACTIVE && (!o.descriptor.cap.ADVANCED || showAdvanced) ? (
         <p key={o.descriptor.name}>
           <OptionMemo
@@ -302,14 +300,20 @@ export function OptionsSelectorAll({ showAdvanced }: { showAdvanced: boolean }) 
 
   return (
     <div className="OptionsSelector-All">
-      {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? (
-        <OptionGroupMemo
-          key={g.title}
-          group={g}
-          showAdvanced={showAdvanced}
-          setOptionValue={setOptionValue}
-        />
-      ) : null)}
+      <Tabs>
+        <TabList>
+          {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? <Tab key={g.title}>{g.title}</Tab> : null)}
+        </TabList>
+        {optionsByGroup.map(g => !g.inactive && (!g.advanced || showAdvanced) ? (
+          <TabPanel key={g.title}>
+            <OptionGroupMemo
+              group={g}
+              showAdvanced={showAdvanced}
+              setOptionValue={setOptionValue}
+            />
+          </TabPanel>
+        ) : null)}
+      </Tabs>
     </div>
   );
 }

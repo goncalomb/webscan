@@ -1,14 +1,14 @@
-.ImageList {
+.ImageList>div {
   margin-bottom: 1em;
 }
 
-.ImageList>*:not(:last-child) {
-  margin-bottom: .5em;
+.ImageList>div:first-child {
+  margin-bottom: .2em;
 }
 
 .ImageList-List {
   overflow-x: auto;
-  padding-bottom: 5px;
+  padding-bottom: .8em;
   display: flex;
   gap: 5px;
 }

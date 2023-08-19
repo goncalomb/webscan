@@ -5,6 +5,7 @@ import { ImageBytes, useExportImageTypeSelector } from './Utilities';
 import { saveZipAs } from '../zip-stream';
 import jsPDF from 'jspdf';
 import { constructImageExportName, imageDataToBlob } from '../utils';
+import { useSANEContext } from '../SANEContext';
 
 const PREVIEW_CANVAS_WIDTH = 120;
 const PREVIEW_CANVAS_HEIGHT = Math.floor(PREVIEW_CANVAS_WIDTH * Math.SQRT2);
@@ -60,14 +61,17 @@ const ImageListItem = React.memo(({ item, onSelect, onAction }: { item: IImageLi
 });
 
 export default function ImageList() {
+  const { busy, scanning } = useSANEContext();
   const { imageList, imageListSelect, imageListMove, imageListDelete, imageListDeleteAll } = useCanvasContext();
   const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector();
   const listRef = useRef<HTMLDivElement>(null);
   const countRef = useRef(0);
 
   const onSelect = useCallback((id: string) => {
-    imageListSelect(id);
-  }, [imageListSelect]);
+    if (!busy && !scanning) {
+      imageListSelect(id);
+    }
+  }, [busy, scanning, imageListSelect]);
 
   const onExportAsPDF = useCallback(() => {
     if (imageList.some(item => !item.dpi)) {
@@ -137,7 +141,7 @@ export default function ImageList() {
   });
 
   return imageList.length ? (
-    <div className="ImageList">
+    <fieldset className="ImageList" disabled={busy || scanning}>
       <div ref={listRef} className="ImageList-List">
         {imageList.map(item => <ImageListItem key={item.id} item={item} onAction={onAction} onSelect={onSelect} />)}
       </div>
@@ -152,6 +156,6 @@ export default function ImageList() {
         {' '}
         <button onClick={onExportAsZIP} title="Export as ZIP.">Export as ZIP</button>
       </div>
-    </div>
+    </fieldset>
   ) : null;
 }

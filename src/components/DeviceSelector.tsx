@@ -1,17 +1,20 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSANEContext } from '../SANEContext';
+import './DeviceSelector.css';
 
 export default function DeviceSelector() {
   const { busy, state, devices, scanning, getDevices, openDevice, closeDevice } = useSANEContext();
-  const [ failedTry, setFailedTry ] = useState(false);
+  const [failedTry, setFailedTry] = useState(false);
   const selectRef = useRef<HTMLSelectElement>(null);
   return state?.initialized ? (
-    <>
-      <p>
-        <button onClick={e => getDevices(true, true).catch(() => setFailedTry(true)) } disabled={state.open}>Authorize USB Scanner</button>
-        {' '}
-        {failedTry ? <button onClick={e => getDevices(true)} disabled={state.open}>Not Found? List All Devices</button> : null}
-      </p>
+    <div className="DeviceSelector">
+      {!state.open ? (
+        <p>
+          <button onClick={e => getDevices(true, true).catch(() => setFailedTry(true))}>Authorize USB Scanner</button>
+          {' '}
+          {failedTry ? <button onClick={e => getDevices(true).catch(() => { })}>Not Found? List All Devices</button> : null}
+        </p>
+      ) : null}
       <p>
         {devices.length ? (
           <select ref={selectRef} disabled={state.open}>
@@ -26,10 +29,10 @@ export default function DeviceSelector() {
       {state.open ? (
         <>
           <p>
-            <button onClick={e => closeDevice()} disabled={busy || scanning}>Close Device</button> <small style={{ color: 'midnightblue' }}><strong>Close the device before unplugging or leaving.</strong></small>
+            <button onClick={e => closeDevice()} disabled={busy || scanning}>Close Device</button> <small><strong>Close the device before unplugging or leaving.</strong></small>
           </p>
           <p>
-            <small style={{ color: 'midnightblue' }}>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
+            <small>Stop the scanning process before leaving this page to avoid locking the scanner. If the scanner is unresponsive, reconnect it and reload the page.</small>
           </p>
         </>
       ) : (
@@ -37,6 +40,6 @@ export default function DeviceSelector() {
           <button onClick={e => openDevice(selectRef.current?.value || '')} disabled={!devices.length}>Select Device</button>
         </p>
       )}
-    </>
+    </div>
   ) : null;
 }

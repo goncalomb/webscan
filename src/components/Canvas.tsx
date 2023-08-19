@@ -3,8 +3,10 @@ import { CANVAS_SERIALIZATION_TYPE_PNG } from '../utils';
 import './Canvas.css';
 import { useCanvasContext } from './CanvasContext';
 import { useExportImageTypeSelector } from './Utilities';
+import { useSANEContext } from '../SANEContext';
 
 export default function Canvas() {
+  const { busy, scanning } = useSANEContext();
   const { canvasRef, notInitialized, exportDownload, exportPhotopea } = useCanvasContext();
   const [scaled, setScaled] = useState(true);
   const { type, quality, elFormatSelector, elQualitySelector } = useExportImageTypeSelector(CANVAS_SERIALIZATION_TYPE_PNG.name);
@@ -29,7 +31,7 @@ export default function Canvas() {
       <div>
         <canvas ref={canvasRef} className={scaled ? 'scaled' : ''} title="Click to Zoom." onClick={onClickCanvas}></canvas>
       </div>
-      <fieldset disabled={notInitialized}>
+      <fieldset disabled={notInitialized || busy || scanning}>
         {elFormatSelector}
         {' '}
         {elQualitySelector}

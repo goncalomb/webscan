@@ -229,14 +229,14 @@ const OptionMemo = React.memo(Option);
  */
 function OptionSpecialPaperSize() {
   const propsPaperSizeSelector = usePaperSizeSelector();
-  return (
+  return propsPaperSizeSelector.paperSizes.length ? (
     <p>
       <label>
         <small>Paper size presets</small><br />
         <PaperSizeSelector {...propsPaperSizeSelector} />
       </label>
     </p>
-  );
+  ) : null;
 }
 
 /**

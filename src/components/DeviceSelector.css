@@ -1,0 +1,7 @@
+.DeviceSelector select {
+  width: 100%;
+}
+
+.DeviceSelector small {
+  color: midnightblue;
+}

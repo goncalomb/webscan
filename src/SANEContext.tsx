@@ -77,10 +77,11 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const openDevice = useCallback(setBusyWrap(async (name: string) => {
     if (lib && state?.initialized) {
       const { status } = await lib.sane_open(name);
-      setState(lib.sane_get_state());
-      setOptions(await saneGetOptions(lib));
-      setParameters(lib.sane_get_parameters().parameters);
-      if (status !== lib.SANE_STATUS.GOOD) {
+      if (status === lib.SANE_STATUS.GOOD) {
+        setState(lib.sane_get_state());
+        setOptions(await saneGetOptions(lib));
+        setParameters(lib.sane_get_parameters().parameters);
+      } else {
         alert('Failed to open device.'); // TODO: proper error dialog
       }
     }

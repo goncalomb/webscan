@@ -1,40 +1,8 @@
-
-import {
-  SANEStatus,
-  SANEValueType,
-  SANEUnit,
-  SANEConstraintType,
-  SANEFrame,
-  SANEState,
-  SANEDevice,
-  SANEOptionDescriptor,
-  SANEInfo,
-  SANEParameters,
-  LibSANE,
-  LibSANEFactory
-} from './libsane-types';
-
-export {
-  SANEStatus,
-  SANEValueType,
-  SANEUnit,
-  SANEConstraintType,
-  SANEFrame
-};
-
-export type {
-  SANEState,
-  SANEDevice,
-  SANEOptionDescriptor,
-  SANEInfo,
-  SANEParameters,
-  LibSANE,
-  LibSANEFactory
-};
+import libsane, { LibSANE, SANEFrame, SANEOptionDescriptor, SANEParameters, SANEValueType } from 'sane-wasm';
+export * from 'sane-wasm';
 
 declare global {
   interface Window {
-    LibSANE?: LibSANEFactory;
     webscanEnableDebug: (sane: any) => void;
   }
 }
@@ -66,13 +34,8 @@ window.webscanEnableDebug = (sane = true) => {
  * SANE utility function to initialize library (window.LibSANE).
  */
 export async function saneGetLibSANE() {
-  if (!window.LibSANE) {
-    throw new Error('LibSANE not found');
-  }
-  const l = window.LibSANE;
-  window.LibSANE = undefined; // nuke global variable
-  return l({
-    sane: JSON.parse(sessionStorage.getItem('sane') || '{}')
+  return libsane({
+    sane: JSON.parse(sessionStorage.getItem('sane') || '{}'),
   });
 }
 

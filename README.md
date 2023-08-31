@@ -17,17 +17,14 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 ### Development Build
 
-    ./build-sane-wasm.sh
     npm install
     npm start
 
 ### Local Build
 
-    ./build-sane-wasm.sh
     npm install
     npm run build && npm run serve
 
 ### Docker Build
 
-    ./build-sane-wasm.sh
     docker build -t webscan . && docker run --rm -p 80:3000 webscan

@@ -1,3 +1,0 @@
-[submodule "sane-wasm"]
-	path = sane-wasm
-	url = git@github.com:goncalomb/sane-wasm.git

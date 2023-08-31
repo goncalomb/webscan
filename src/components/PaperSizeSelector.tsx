@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSANEContext } from "../SANEContext";
-import { SANEConstraintType, SANEOptionDescriptor, SANEUnit } from "../libsane-types";
+import { SANEConstraintType, SANEOptionDescriptor, SANEUnit } from "../libsane";
 import { PAPER_SIZES_ALL_SORTED, in2mm } from "../utils";
 import { useDebouncedEffect } from "./Utilities";
 

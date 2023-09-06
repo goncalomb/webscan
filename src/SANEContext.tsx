@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useState } from "react";
 import { useEffect } from "react";
 import { usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
-import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionArray, SANEOptionDescriptor, SANEParameters, SANEState, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
+import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionArray, SANEOptionDescriptor, SANEParameters, SANEState, SANEStatus, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
   lib: LibSANE | null;
@@ -65,7 +65,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
       setState(lib.sane_get_state());
 
       const { status, devices } = await lib.sane_get_devices();
-      if (status === lib.SANE_STATUS.GOOD) {
+      if (status === SANEStatus.GOOD) {
         setDevices(devices);
       } else {
         alert('Failed to get devices.'); // TODO: proper error dialog
@@ -77,7 +77,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const openDevice = useCallback(setBusyWrap(async (name: string) => {
     if (lib && state?.initialized) {
       const { status } = await lib.sane_open(name);
-      if (status === lib.SANE_STATUS.GOOD) {
+      if (status === SANEStatus.GOOD) {
         setState(lib.sane_get_state());
         setOptions(await saneGetOptions(lib));
         setParameters(lib.sane_get_parameters().parameters);
@@ -103,7 +103,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     if (lib && state?.initialized) {
       // XXX: value == undefined means set auto, this function should be split in two or use symbol to mean auto, add type to value first
       const { status, info } = value === undefined ? await lib.sane_control_option_set_auto(option) : await lib.sane_control_option_set_value(option, value);
-      if (status === lib.SANE_STATUS.GOOD) {
+      if (status === SANEStatus.GOOD) {
         if (info.RELOAD_PARAMS) {
           setParameters(lib.sane_get_parameters().parameters);
         }
@@ -146,7 +146,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         }).finally(() => {
           setScanning(false);
         });
-        return { options, parameters, promise, cancel };
+        return parameters ? { options, parameters, promise, cancel } : null;
       } else {
         alert('Failed to start scanning.'); // TODO: proper error dialog
       }

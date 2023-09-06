@@ -1,4 +1,4 @@
-import libsane, { LibSANE, SANEFrame, SANEOptionDescriptor, SANEParameters, SANEValueType } from 'sane-wasm';
+import { libsane, LibSANE, SANEFrame, SANEOptionDescriptor, SANEParameters, SANEStatus, SANEValueType } from 'sane-wasm';
 export * from 'sane-wasm';
 
 declare global {
@@ -50,7 +50,7 @@ export async function saneGetOptions(lib: LibSANE) {
     if (desc) {
       if (!desc.cap.INACTIVE && desc.cap.SOFT_DETECT && desc.type !== SANEValueType.BUTTON) {
         const { status, value } = await lib.sane_control_option_get_value(i); // TODO: handle status
-        if (status !== lib.SANE_STATUS.GOOD) {
+        if (status !== SANEStatus.GOOD) {
           throw new Error('Unexpected status while getting option value');
         }
         options.push({ descriptor: desc, value });
@@ -79,9 +79,6 @@ export function saneWellKnownOptGetDPI(options: SANEOptionArray) {
  * SANE utility function that implements core scanning code flow.
  */
 export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, data: Uint8Array) => void, onStart?: (parameters: SANEParameters) => void) {
-  let status = lib.SANE_STATUS.INVAL;
-  let parameters: SANEParameters | null = null;
-  let promise: Promise<void> | null = null;
   let dead: Error | boolean = false;
 
   const kill = (err?: Error) => {
@@ -89,43 +86,41 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
   };
   const cancel = () => kill();
 
-  const state = lib.sane_get_state();
-  if (!state.open) {
-    return { status, parameters, promise, cancel }; // fail, device not open
-  }
-
-  ({ status } = lib.sane_start());
-  if (status !== lib.SANE_STATUS.GOOD) {
-    return { status, parameters, promise, cancel }; // fail, sane_start failed
+  {
+    const { status } = lib.sane_start();
+    if (status !== SANEStatus.GOOD) {
+      return { status, parameters: null, promise: null, cancel }; // fail, sane_start failed
+    }
   }
 
   // after successful start, sane_cancel needs to be called and wait for
   // sane_read, so subsequent fails need to use kill()
 
-  ({ status, parameters } = lib.sane_get_parameters());
-  if (status !== lib.SANE_STATUS.GOOD) {
+  const { status, parameters } = lib.sane_get_parameters();
+  if (status !== SANEStatus.GOOD) {
     kill(new Error()); // kill, sane_get_parameters failed
   }
 
   if (onStart && !dead) {
     try {
-      onStart(parameters);
+      if (parameters) {
+        onStart(parameters);
+      }
     } catch (e) {
       kill(e instanceof Error ? e : new Error());
     }
   }
 
-  const params = parameters; // enforce ts type guard in next closure
-  promise = new Promise((resolve, reject) => {
+  const promise = new Promise<void>((resolve, reject) => {
     const read = async () => {
       try {
         const { status, data } = await lib.sane_read(); // non-blocking
-        if (status === lib.SANE_STATUS.EOF) {
+        if (status === SANEStatus.EOF) {
           await lib.sane_cancel(); // ignore status
           resolve();
           return;
         }
-        if (status === lib.SANE_STATUS.CANCELLED) {
+        if (status === SANEStatus.CANCELLED) {
           if (dead instanceof Error) {
             reject(dead);
             return;
@@ -133,15 +128,15 @@ export function saneDoScan(lib: LibSANE, onData: (parameters: SANEParameters, da
           resolve();
           return;
         }
-        if (status !== lib.SANE_STATUS.GOOD) {
+        if (status !== SANEStatus.GOOD) {
           reject();
           return;
         }
         if (dead) {
           await lib.sane_cancel(); // ignore status
         }
-        if (data.length) {
-          onData(params, data);
+        if (parameters && data.length) {
+          onData(parameters, data);
         }
         setTimeout(read, data.length > 0 ? 10 : 200);
       } catch (e) {

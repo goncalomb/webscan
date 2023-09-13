@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useSANEContext } from '../SANEContext';
 import { useCanvasContext } from './CanvasContext';
-import { SANEFrame, SANEImageScanner, SANEParameters } from '../libsane';
+import { SANEFrame, SANEParameters, ScanImageReader } from '../libsane';
 import { ImageBytes } from './Utilities';
 
 function constructErrorList(parameters: SANEParameters) {
@@ -33,18 +33,21 @@ export default function ScanController() {
   const startImageScan = useCallback(async () => {
     // its safe to keep a reference to resetCanvas and putImageData because
     // they never change, see useCanvasContext
-    const scanner = new SANEImageScanner((data: ImageData, line: number) => {
-      putImageData(data, line);
-    });
-    const result = await startScan(scanner);
-    if (result) {
-      resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
-      setStopScan(() => result.cancel);
-      result.promise.then(() => {
-        imageListAdd(scanner.getFullImage(result.parameters), result.options);
+    if (lib) {
+      const reader = new ScanImageReader(lib);
+      reader.on('line', (parameters, data, line) => {
+        putImageData(new ImageData(data, parameters.pixels_per_line), line);
       });
+      const result = await startScan(reader);
+      if (result) {
+        reader.on('image', (parameters, data) => {
+          imageListAdd(new ImageData(data, parameters.pixels_per_line), result.options);
+        });
+        resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
+        setStopScan(() => ()=> reader.cancel());
+      }
     }
-  }, [startScan, resetCanvas, putImageData, imageListAdd]);
+  }, [lib, startScan, resetCanvas, putImageData, imageListAdd]);
 
   const errorList = parameters ? constructErrorList(parameters) : null;
   return state?.open && parameters ? (

@@ -1,5 +1,5 @@
 import React, { ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { SANEOptionArray, saneWellKnownOptGetDPI } from '../libsane';
+import { IScanOptions } from '../libsane';
 import { constructImageExportName, isNavigatorSupported } from '../utils';
 import { useStableCallback } from './Utilities';
 
@@ -59,7 +59,7 @@ export interface IImageListData {
   id: string;
   date: Date;
   data: ImageData;
-  options: SANEOptionArray;
+  options: IScanOptions;
   dpi: number | null;
 }
 
@@ -71,7 +71,7 @@ interface ICanvasContext {
   putImageData: (data: ImageData, dy: number) => void;
   exportDownload: (type: string, quality: number) => void;
   exportPhotopea: (type: string, quality: number) => void;
-  imageListAdd: (data: ImageData, options: SANEOptionArray) => void;
+  imageListAdd: (data: ImageData, options: IScanOptions) => void;
   imageListSelect: (id: string) => void;
   imageListMove: (id: string, n: number) => void;
   imageListDelete: (id: string) => void;
@@ -152,9 +152,9 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
     }
   }, []);
 
-  const imageListAdd = useCallback((data: ImageData, options: SANEOptionArray) => {
+  const imageListAdd = useCallback((data: ImageData, options: IScanOptions) => {
     const id = `${Date.now()}-${Math.floor(Math.random() * 1e10)}`; // XXX: use uuid?
-    const dpi = saneWellKnownOptGetDPI(options);
+    const dpi = options.resolution?.value || null;
     setImageList(imageList => [...imageList, { id, date: new Date(), data, options, dpi }]);
     setSelectedImage(id);
   }, [setImageList, setSelectedImage]);

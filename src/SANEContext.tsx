@@ -1,21 +1,20 @@
-import React, { useCallback, useContext, useState } from "react";
-import { useEffect } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { IScanOptions, LibSANE, SANEDevice, SANEParameters, SANEState, SANEStatus, ScanDataReader, ScanOption, ScanOptions, saneGetLibSANE } from "./libsane";
 import { usbAddListener, usbRemoveListener, usbRequestDevices } from './utils';
-import { LibSANE, SANEDevice, SANEImageScanner, SANEOptionArray, SANEOptionDescriptor, SANEParameters, SANEState, SANEStatus, saneDoScan, saneGetLibSANE, saneGetOptions } from "./libsane";
 
 interface ISANEContext {
   lib: LibSANE | null;
   busy: boolean;
   state: SANEState | null;
   devices: SANEDevice[];
-  options: { descriptor: SANEOptionDescriptor, value: any }[];
+  options: readonly ScanOption[];
   parameters: SANEParameters | null;
   scanning: boolean;
   getDevices: (usbRequest?: boolean, usbRequestFiltered?: boolean) => Promise<void>;
   openDevice: (name: string) => void;
   closeDevice: () => void;
   setOptionValue: (option: number, value?: any) => Promise<void>;
-  startScan: (scanner: SANEImageScanner) => Promise<{ options: SANEOptionArray, parameters: SANEParameters, promise: Promise<void>, cancel: () => void } | null>;
+  startScan: (scanner: ScanDataReader) => Promise<{ options: IScanOptions, parameters: SANEParameters } | null>;
 }
 
 const SANEContext = React.createContext<ISANEContext | null>(null);
@@ -36,6 +35,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const [options, setOptions] = useState<ISANEContext['options']>([]);
   const [parameters, setParameters] = useState<ISANEContext['parameters']>(null);
   const [scanning, setScanning] = useState<ISANEContext['scanning']>(false);
+  const scanOptions = useRef<ScanOptions>();
 
   // wrapper to set busy state while performing calls to the library, this
   // breaks hooks linting a bit, using eslint-disable-next-line in some places
@@ -79,7 +79,8 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
       const { status } = await lib.sane_open(name);
       if (status === SANEStatus.GOOD) {
         setState(lib.sane_get_state());
-        setOptions(await saneGetOptions(lib));
+        scanOptions.current = await ScanOptions.get(lib);
+        setOptions(scanOptions.current.options);
         setParameters(lib.sane_get_parameters().parameters);
       } else {
         alert('Failed to open device.'); // TODO: proper error dialog
@@ -92,6 +93,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     if (lib && state?.initialized) {
       await lib.sane_close();
       setState(lib.sane_get_state());
+      scanOptions.current = undefined;
       setOptions([]);
       setParameters(null);
       await getDevices();
@@ -100,55 +102,37 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setOptionValue = useCallback(setBusyWrap(async (option: number, value?: any) => {
-    if (lib && state?.initialized) {
-      // XXX: value == undefined means set auto, this function should be split in two or use symbol to mean auto, add type to value first
-      const { status, info } = value === undefined ? await lib.sane_control_option_set_auto(option) : await lib.sane_control_option_set_value(option, value);
+    if (lib && state?.initialized && scanOptions.current) {
+      const { status, info, updated } = await scanOptions.current.setValue(option, value || null);
       if (status === SANEStatus.GOOD) {
         if (info.RELOAD_PARAMS) {
           setParameters(lib.sane_get_parameters().parameters);
         }
-        if (info.RELOAD_OPTIONS) {
-          setOptions(await saneGetOptions(lib));
-          return; // skip get/update option, we fetch them all
+        if (updated) {
+          scanOptions.current = updated;
+          setOptions(scanOptions.current.options);
         }
-        if (info.INEXACT || typeof value === 'number' || value === undefined) {
-          // auto triggers get value... ok
-          // number triggers get value... this is a quirk for fixed numbers
-          // because the conversion from floating to fixed point happens
-          // on the library side, we might get INEXACT == false but in
-          // reality there were some small difference
-          // XXX: this could probably be fixed on sane-wasm
-          ({ value } = await lib.sane_control_option_get_value(option));
-        }
-        // update value
-        setOptions(options => {
-          const ret = [...options];
-          ret[option] = { ...options[option], value };
-          return ret;
-        });
       } else {
         alert('Failed to set option.'); // TODO: proper error dialog
       }
     }
   }), [lib, state?.initialized]);
 
-  const startScan = useCallback(async (scanner: SANEImageScanner) => {
+  const startScan = useCallback(async (reader: ScanDataReader) => {
     if (lib && state?.initialized) {
-      const options = await saneGetOptions(lib);
-      const { /* status, */ parameters, promise, cancel } = saneDoScan(lib, scanner.consumeData.bind(scanner), scanner.initialize.bind(scanner));
-      if (promise) {
-        // scan started
+      const options = await ScanOptions.get(lib);
+      const { status, parameters, promise } = reader.start();
+      // scan started
+      setScanning(true);
+      promise.catch(e => {
+        console.error(e);
+        alert('Error while scanning.'); // TODO: proper error dialog
+      }).finally(() => {
+        setScanning(false);
+      });
+      if (status === SANEStatus.GOOD) {
         setParameters(parameters);
-        setScanning(true);
-        promise.catch(e => {
-          console.error(e);
-          alert('Error while scanning.'); // TODO: proper error dialog
-        }).finally(() => {
-          setScanning(false);
-        });
-        return parameters ? { options, parameters, promise, cancel } : null;
-      } else {
-        alert('Failed to start scanning.'); // TODO: proper error dialog
+        return { options, parameters };
       }
     }
     return null;

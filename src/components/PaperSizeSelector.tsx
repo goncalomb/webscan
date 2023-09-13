@@ -49,7 +49,7 @@ export function usePaperSizeSelector() {
     };
 
     // util to calculate area based on current options
-    const getCurrentArea = (options: { descriptor: SANEOptionDescriptor; value: any; }[]) => (
+    const getCurrentArea = (options: readonly { descriptor: SANEOptionDescriptor; value: any; }[]) => (
       tlxN !== -1 && tlyN !== -1 && brxN !== -1 && bryN !== -1 ? (
         { w: options[brxN].value - options[tlxN].value, h: options[bryN].value - options[tlyN].value }
       ) : (

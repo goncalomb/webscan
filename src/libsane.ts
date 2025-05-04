@@ -1,9 +1,9 @@
-import { libsane } from 'sane-wasm';
+import { LibSANEOptions, libsane } from 'sane-wasm';
 export * from 'sane-wasm';
 
 declare global {
   interface Window {
-    webscanEnableDebug: (sane: any) => void;
+    webscanEnableDebug: (sane: LibSANEOptions | boolean) => void;
   }
 }
 

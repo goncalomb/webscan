@@ -15,14 +15,14 @@ export function useDebouncedEffect(effect: EffectCallback, deps?: DependencyList
 // callback is also a good solution.
 // https://legacy.reactjs.org/docs/hooks-faq.html#how-to-read-an-often-changing-value-from-usecallback
 // https://github.com/facebook/react/issues/14099
-export function useStableCallback<T extends Function>(callback: T, deps: DependencyList): T {
-  const ref = useRef<T>();
+export function useStableCallback<TArgs extends any[], T>(callback: (...X: TArgs) => T, deps: DependencyList) {
+  const ref = useRef<(...X: TArgs) => T>(callback);
   useLayoutEffect(() => {
     ref.current = callback;
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
-  return useCallback(function (this: any) {
-    return ref.current?.apply(this, arguments);
-  }, []) as unknown as T;
+  return useCallback(function (this: any, ...args: TArgs) {
+    return ref.current?.apply(this, args);
+  }, []);
 }
 
 export function ImageBytes({ value }: { value: number | ImageData }) {

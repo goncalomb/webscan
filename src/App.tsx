@@ -48,13 +48,13 @@ export default function App() {
         <h2><span>Special Considerations on Windows!</span></h2>
         <p>On Windows, you might need to use the free tool <a href="https://zadig.akeo.ie/">Zadig</a> to replace the pre-installed device driver. It goes something like this: 1. Open Zadig 2. Select "Options" "List All Devices" 3. Select your scanner 4. Replace the driver (probably usbscan) with WinUSB 5. Reload this page and try selecting the device. To revert, uninstall the device from Device Manager and reconnect.</p>
         <h2><span>Source Code on GitHub!</span></h2>
-        <p>The secret sauce behind WebScan is <a href="https://github.com/goncalomb/sane-wasm">sane-wasm</a> a WebAssembly port of the <a href="http://www.sane-project.org/">SANE</a> library that I'm publishing on GitHub. This page is just a simple React application on top of that. I may release its code at later date.</p>
+        <p>The secret sauce behind WebScan is <a href="https://github.com/goncalomb/sane-wasm">sane-wasm</a> a WebAssembly port of the <a href="http://www.sane-project.org/">SANE</a> library that I'm publishing on GitHub. <a href="https://github.com/goncalomb/webscan">WebScan</a> is just a simple React application on top of that, also on GitHub.</p>
         <h2><span>Report Issues</span></h2>
         <p>You can report issues on the <a href="https://github.com/goncalomb/sane-wasm/issues">issues page for sane-wasm</a> as any problems will most likely be related to that. Note that any issues that are found to be specific to the SANE library will probably not be fixed, and will need to be <a href="https://gitlab.com/sane-project/backends/-/issues">redirected to that project</a>.</p>
         <p>You can also email me at contact<span hidden>.hahaha</span>@<span hidden>rekt</span>goncalomb<span hidden>.example</span>.com.</p>
       </article>
       <footer>
-        <p><SWVersion /> | <a href="https://goncalomb.com/">goncalomb.com</a></p>
+        <p><a href="https://github.com/goncalomb/webscan">WebScan</a> | <SWVersion /> | <a href="https://goncalomb.com/">goncalomb.com</a></p>
       </footer>
     </div>
   );

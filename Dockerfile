@@ -26,6 +26,7 @@ ENV NODE_ENV=production
 RUN npm install --no-save serve@14.2.4
 
 COPY --from=builder /home/node/app/build ./build
+COPY --from=builder /home/node/app/node_modules/sane-wasm ./build/sane-wasm
 COPY --from=builder /home/node/app/serve.json ./
 
 EXPOSE 3000

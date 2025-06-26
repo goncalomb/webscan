@@ -120,10 +120,9 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
 
   const startScan = useCallback(async (reader: ScanDataReader) => {
     if (lib && state?.initialized) {
-      const options = await ScanOptions.get(lib);
-      const { status, parameters, promise } = reader.start();
-      // scan started
       setScanning(true);
+      const options = await ScanOptions.get(lib);
+      const { status, parameters, promise } = await reader.start();
       promise.catch(e => {
         console.error(e);
         alert('Error while scanning.'); // TODO: proper error dialog

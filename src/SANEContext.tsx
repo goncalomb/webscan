@@ -81,7 +81,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
         setState(lib.sane_get_state());
         scanOptions.current = await ScanOptions.get(lib);
         setOptions(scanOptions.current.options);
-        setParameters(lib.sane_get_parameters().parameters);
+        setParameters((await lib.sane_get_parameters()).parameters);
       } else {
         alert('Failed to open device.'); // TODO: proper error dialog
       }
@@ -106,7 +106,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
       const { status, info, updated } = await scanOptions.current.setValue(option, value || null);
       if (status === SANEStatus.GOOD) {
         if (info.RELOAD_PARAMS) {
-          setParameters(lib.sane_get_parameters().parameters);
+          setParameters((await lib.sane_get_parameters()).parameters);
         }
         if (updated) {
           scanOptions.current = updated;

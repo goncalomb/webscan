@@ -1,5 +1,7 @@
 import { LibSANEOptions, libsane } from 'sane-wasm';
-export * from 'sane-wasm';
+// TODO: convert sane-wasm to ESM module
+// export * from 'sane-wasm';
+export { SANEConstraintType, SANEFrame, SANEStatus, SANEUnit, SANEValueType, ScanDataReader, ScanImageReader, ScanOptions, type IScanOptions, type LibSANE, type SANEDevice, type SANEOptionDescriptor, type SANEParameters, type SANEState, type ScanOption } from 'sane-wasm';
 
 declare global {
   interface Window {

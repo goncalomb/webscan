@@ -31,8 +31,8 @@ declare global {
 }
 
 // XXX: abuse starts here
-// import ZIP from 'streamsaver/examples/zip-stream';
-require('streamsaver/examples/zip-stream');
+// @ts-ignore
+import 'streamsaver/examples/zip-stream';
 if (!window.ZIP) {
   console.error("Error preparing zip-stream.");
 }

@@ -11,9 +11,8 @@ RUN npm ci --include=dev
 
 COPY public ./public
 COPY src ./src
-COPY serve.json tsconfig.json ./
+COPY serve.json tsconfig.json vite.config.ts ./
 
-ENV GENERATE_SOURCEMAP=false
 RUN npm run build
 
 FROM $IMAGE

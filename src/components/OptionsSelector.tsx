@@ -5,16 +5,12 @@ import { SANEConstraintType, SANEOptionDescriptor, SANEUnit, SANEValueType } fro
 import './OptionsSelector.css';
 import PaperSizeSelector, { usePaperSizeSelector } from './PaperSizeSelector';
 
-enum IOptionGroupSpecial {
-  GEOMETRY,
-}
-
 interface IOptionGroup {
   title: string;
   inactive: boolean;
   advanced: boolean;
   options: IOption[];
-  special: IOptionGroupSpecial | null;
+  special: 'geometry' | null;
 }
 
 interface IOption {
@@ -254,7 +250,7 @@ function OptionGroup({ group, showAdvanced, setOptionValue }: { group: IOptionGr
           />
         </p>
       ) : null)}
-      {group.special === IOptionGroupSpecial.GEOMETRY ? <OptionSpecialPaperSize /> : null}
+      {group.special === 'geometry' ? <OptionSpecialPaperSize /> : null}
     </>
   );
 }
@@ -292,7 +288,7 @@ export function OptionsSelectorAll({ showAdvanced }: { showAdvanced: boolean }) 
     }
     result.forEach(g => {
       if (SANE_WELL_KNOWN_AREA_OPTIONS.every(n => g.options.find(v => v.descriptor.name === n))) {
-        g.special = IOptionGroupSpecial.GEOMETRY;
+        g.special = 'geometry';
       }
     });
     return result;

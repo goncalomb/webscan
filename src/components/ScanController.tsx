@@ -1,7 +1,7 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { SANEFrame, SANEParameters, ScanImageReader } from '../libsane';
 import { useSANEContext } from '../SANEContext';
 import { useCanvasContext } from './CanvasContext';
-import { SANEFrame, SANEParameters, ScanImageReader } from '../libsane';
 import { ImageBytes } from './Utilities';
 
 function constructErrorList(parameters: SANEParameters) {
@@ -35,16 +35,16 @@ export default function ScanController() {
     // they never change, see useCanvasContext
     if (lib) {
       const reader = new ScanImageReader(lib);
-      reader.on('line', (parameters, data, line) => {
+      reader.on('line', (parameters, data: any, line) => { // TODO: fix types on sane-wasm
         putImageData(new ImageData(data, parameters.pixels_per_line), line);
       });
       const result = await startScan(reader);
       if (result) {
-        reader.on('image', (parameters, data) => {
+        reader.on('image', (parameters, data: any) => { // TODO: fix types on sane-wasm
           imageListAdd(new ImageData(data, parameters.pixels_per_line), result.options);
         });
         resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);
-        setStopScan(() => ()=> reader.cancel());
+        setStopScan(() => () => reader.cancel());
       }
     }
   }, [lib, startScan, resetCanvas, putImageData, imageListAdd]);

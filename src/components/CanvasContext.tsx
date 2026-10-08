@@ -64,7 +64,7 @@ export interface IImageListData {
 }
 
 interface ICanvasContext {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   notInitialized: boolean;
   imageList: IImageListData[];
   resetCanvas: (width: number, height: number) => void;
@@ -91,7 +91,7 @@ export const useCanvasContext = () => {
 export default function CanvasContextProvider({ children }: { children: ReactNode }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [notInitialized, setNotInitialized] = useState(true);
-  const ctxRef = useRef<CanvasRenderingContext2D>();
+  const ctxRef = useRef<CanvasRenderingContext2D>(null);
   const photopeaManagerRef = useRef(new PhotopeaWindowManager());
   const [imageList, setImageList] = useState<IImageListData[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -117,7 +117,7 @@ export default function CanvasContextProvider({ children }: { children: ReactNod
         canvasRef.current.width = width;
         canvasRef.current.height = height;
       }
-      ctxRef.current = canvasRef.current.getContext('2d') || undefined;
+      ctxRef.current = canvasRef.current.getContext('2d');
     }
   }, []);
 

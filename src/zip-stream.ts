@@ -26,7 +26,7 @@ type ZIPEntry = {
 
 declare global {
   interface Window {
-    ZIP?: (underlyingSource: Pick<UnderlyingDefaultSource<ZIPEntry>, 'start' | 'pull'>) => ReadableStream<ZIPEntry>
+    ZIP?: (underlyingSource: Pick<UnderlyingDefaultSource<ZIPEntry>, 'start' | 'pull'>) => ReadableStream<Uint8Array>
   }
 }
 

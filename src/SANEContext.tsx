@@ -35,7 +35,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
   const [options, setOptions] = useState<ISANEContext['options']>([]);
   const [parameters, setParameters] = useState<ISANEContext['parameters']>(null);
   const [scanning, setScanning] = useState<ISANEContext['scanning']>(false);
-  const scanOptions = useRef<ScanOptions>();
+  const scanOptions = useRef<ScanOptions>(null);
 
   // wrapper to set busy state while performing calls to the library, this
   // breaks hooks linting a bit, using eslint-disable-next-line in some places
@@ -93,7 +93,7 @@ export const SANEContextProvider = ({ children }: { children: any }) => {
     if (lib && state?.initialized) {
       await lib.sane_close();
       setState(lib.sane_get_state());
-      scanOptions.current = undefined;
+      scanOptions.current = null;
       setOptions([]);
       setParameters(null);
       await getDevices();

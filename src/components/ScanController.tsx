@@ -35,12 +35,12 @@ export default function ScanController() {
     // they never change, see useCanvasContext
     if (lib) {
       const reader = new ScanImageReader(lib);
-      reader.on('line', (parameters, data: any, line) => { // TODO: fix types on sane-wasm
+      reader.on('line', (parameters, data, line) => {
         putImageData(new ImageData(data, parameters.pixels_per_line), line);
       });
       const result = await startScan(reader);
       if (result) {
-        reader.on('image', (parameters, data: any) => { // TODO: fix types on sane-wasm
+        reader.on('image', (parameters, data) => {
           imageListAdd(new ImageData(data, parameters.pixels_per_line), result.options);
         });
         resetCanvas(result.parameters.pixels_per_line, result.parameters.lines);

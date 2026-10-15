@@ -21,7 +21,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-tabs": "^6.1.1",
-    "sane-wasm": "^0.5.0",
+    "sane-wasm": "^0.6.0",
     "streamsaver": "^2.0.6",
     "typescript": "^7.0.2"
   },
